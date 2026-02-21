@@ -22,10 +22,14 @@ class Settings(BaseSettings):
     # Accepte soit une liste JSON ["url1","url2"] soit des URLs séparées par des virgules.
     CORS_ORIGINS: List[str] = ["http://localhost:5173"]
 
+    # --- Rate limiting WebSocket ---
+    RATE_LIMIT_PER_MINUTE: int = 30
+
     # --- Application ---
     APP_ENV: str = "development"
 
     model_config = SettingsConfigDict(
+        extra="ignore",
         env_file=".env",
         env_file_encoding="utf-8",
     )
