@@ -1,0 +1,18 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"   # Accessible uniquement depuis le serveur (nginx)
+    env_file: ./backend/.env
+    depends_on: [redis]
+
+volumes:
+  redis_data:

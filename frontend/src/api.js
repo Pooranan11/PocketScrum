@@ -1,4 +1,6 @@
-const BASE = 'http://localhost:8000/api'
+// En dev : Vite proxifie /api → localhost:8000
+// En prod : nginx proxifie /api → backend Docker
+const BASE = '/api'
 
 export async function createRoom(playerName) {
   const res = await fetch(`${BASE}/rooms`, {

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useCallback } from 'react'
 
-const WS_BASE = 'ws://localhost:8000'
+// Détecte automatiquement ws:// en dev et wss:// en prod (HTTPS)
+const WS_PROTOCOL = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+const WS_BASE = `${WS_PROTOCOL}//${window.location.host}`
 
 /**
  * Hook WebSocket pour PocketScrum.
