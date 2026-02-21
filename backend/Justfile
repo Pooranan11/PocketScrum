@@ -1,0 +1,74 @@
+# PocketScrum — Justfile
+# Utilisation : just <commande>
+
+python := ".venv/bin/python"
+uvicorn := ".venv/bin/uvicorn"
+pytest := ".venv/bin/pytest"
+pip := ".venv/bin/pip"
+
+# Afficher les commandes disponibles
+default:
+    @just --list
+
+# Créer le venv et installer les dépendances
+setup:
+    /opt/homebrew/bin/python3.12 -m venv .venv
+    {{pip}} install --upgrade pip -q
+    {{pip}} install -r requirements.txt -q
+    cp -n .env.example .env || true
+    @echo "✓ Environnement prêt. Pensez à éditer .env"
+
+# Installer les dépendances sans recréer le venv
+install:
+    {{pip}} install -r requirements.txt -q
+
+# Démarrer Redis en arrière-plan (Homebrew)
+redis:
+    redis-server --daemonize yes --logfile /tmp/redis-pocketscrum.log
+    @redis-cli ping
+
+# Lancer le serveur de développement (hot reload)
+dev:
+    {{uvicorn}} main:app --reload --host 0.0.0.0 --port 8000
+
+# Lancer tous les tests
+test:
+    {{pytest}} tests/ -v
+
+# Tests avec rapport de couverture
+test-cov:
+    {{pip}} install pytest-cov -q
+    {{pytest}} tests/ -v --cov=. --cov-report=term-missing --cov-omit=".venv/*,tests/*"
+
+# Tests sécurité uniquement
+test-security:
+    {{pytest}} tests/test_security.py -v
+
+# Tests rooms uniquement
+test-rooms:
+    {{pytest}} tests/test_rooms.py -v
+
+# Linter (ruff) — installation si absent
+lint:
+    {{pip}} install ruff -q
+    .venv/bin/ruff check .
+
+# Formatage (ruff)
+format:
+    {{pip}} install ruff -q
+    .venv/bin/ruff format .
+
+# Vérification de types (mypy)
+typecheck:
+    {{pip}} install mypy -q
+    .venv/bin/mypy . --ignore-missing-imports --exclude .venv
+
+# Nettoyer les fichiers temporaires
+clean:
+    find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+    find . -name "*.pyc" -delete 2>/dev/null || true
+    rm -rf .pytest_cache .mypy_cache .ruff_cache
+
+# Supprimer le venv et les caches
+clean-all: clean
+    rm -rf .venv
