@@ -7,7 +7,6 @@ ce qui prévient toute forme d'injection de clé.
 
 TTL de 24h appliqué sur chaque opération d'écriture sans exception.
 """
-import json
 import logging
 import secrets
 import string

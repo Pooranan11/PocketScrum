@@ -29,7 +29,6 @@ from redis.asyncio import Redis
 from core.redis import get_redis
 from core.security import verify_session_token
 from models.schemas import (
-    FIBONACCI_CARDS,
     ROOM_CODE_REGEX,
     WSIncomingMessage,
     WSVotePayload,

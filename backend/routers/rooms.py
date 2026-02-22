@@ -21,12 +21,12 @@ from models.schemas import (
     CreateRoomResponse,
     JoinRoomRequest,
     JoinRoomResponse,
+    _validate_room_code,
 )
 from services.room import create_room, join_room
 
 logger = logging.getLogger(__name__)
 
-# Limiteur partagé avec main.py (injecté via app.state.limiter dans main.py)
 limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/api", tags=["rooms"])
@@ -51,11 +51,7 @@ async def create_room_endpoint(
     - Le token de session pour l'authentification WebSocket
     """
     player_id = generate_player_id()
-    token = generate_session_token("", player_id)  # token provisoire avant code connu
-
     room_code = await create_room(redis, player_id, body.player_name)
-
-    # Regénère le token avec le code définitif
     token = generate_session_token(room_code, player_id)
 
     logger.info("Room %s créée par Scrum Master %s.", room_code, player_id)
@@ -85,9 +81,6 @@ async def join_room_endpoint(
     - L'identifiant du joueur
     - Le token de session pour l'authentification WebSocket
     """
-    # Validation et normalisation du code via le schéma Pydantic
-    # (room_code dans body est déjà validé, mais le path param aussi)
-    from models.schemas import _validate_room_code
     try:
         validated_code = _validate_room_code(room_code)
     except ValueError as e:
