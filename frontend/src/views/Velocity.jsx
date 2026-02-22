@@ -12,6 +12,25 @@ const fmtDate = d => d
   : '—'
 
 /**
+ * Parmi les membres disponibles, retourne celui avec le plus de capacité libre
+ * pouvant absorber la tâche (excluant le membre source).
+ * Retourne null si personne ne peut la prendre.
+ */
+function findBestTarget(task, members, getAssigned, excludeMemberId) {
+  let best = null
+  let bestAvailable = -Infinity
+  for (const m of members) {
+    if (m.id === excludeMemberId) continue
+    const available = parseFloat((m.capacity - getAssigned(m.id)).toFixed(2))
+    if (available >= task.estimate && available > bestAvailable) {
+      best = m
+      bestAvailable = available
+    }
+  }
+  return best ? { member: best, available: bestAvailable } : null
+}
+
+/**
  * Trouve le sous-ensemble minimal de tâches à retirer pour couvrir le surplus.
  * Priorité : minimiser le dépassement (overshoot), puis le nombre de tâches.
  * Recherche exhaustive (faisable jusqu'à ~18 tâches par membre).
@@ -132,11 +151,16 @@ export default function Velocity({ onBack }) {
       const memberTasks  = tasks.filter(t => t.assigneeId === m.id)
       const suggested    = suggestRemovals(memberTasks, surplus)
       const suggestedSum = suggested.reduce((s, t) => s + t.estimate, 0)
+      // Pour chaque tâche suggérée, chercher le meilleur destinataire
+      const suggestedWithTargets = suggested.map(t => ({
+        ...t,
+        bestTarget: findBestTarget(t, members, memberAssigned, m.id),
+      }))
       return {
         member:  m,
         assigned,
         surplus,
-        suggested,
+        suggested: suggestedWithTargets,
         newLoad: parseFloat((assigned - suggestedSum).toFixed(2)),
       }
     })
@@ -450,7 +474,7 @@ export default function Velocity({ onBack }) {
                       <span className={styles.suggBadge}>+{fmtJ(surplus)} surchargé</span>
                     </div>
 
-                    <p className={styles.suggLabel}>Retirer :</p>
+                    <p className={styles.suggLabel}>Déplacer :</p>
 
                     {suggested.map(t => (
                       <div key={t.id} className={styles.suggTask}>
@@ -458,12 +482,21 @@ export default function Velocity({ onBack }) {
                           <span className={styles.suggTaskName}>{t.title}</span>
                           <span className={styles.suggTaskEst}>{fmtJ(t.estimate)}</span>
                         </div>
-                        <button
-                          className={styles.suggRemoveBtn}
-                          onClick={() => updateTask(t.id, { assigneeId: '' })}
-                        >
-                          Désassigner
-                        </button>
+                        {t.bestTarget ? (
+                          <button
+                            className={styles.suggReassignBtn}
+                            onClick={() => updateTask(t.id, { assigneeId: t.bestTarget.member.id })}
+                          >
+                            → {t.bestTarget.member.name}
+                          </button>
+                        ) : (
+                          <button
+                            className={styles.suggRemoveBtn}
+                            onClick={() => updateTask(t.id, { assigneeId: '' })}
+                          >
+                            Désassigner
+                          </button>
+                        )}
                       </div>
                     ))}
 
