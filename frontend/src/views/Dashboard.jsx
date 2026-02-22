@@ -13,7 +13,7 @@ const tools = [
     icon: '📈',
     name: 'Vélocité & Capacité',
     description: 'Calculez la vélocité de votre équipe et visualisez sa capacité sprint après sprint.',
-    available: false,
+    available: true,
   },
 ]
 

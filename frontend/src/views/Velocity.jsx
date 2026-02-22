@@ -3,10 +3,59 @@ import styles from './Velocity.module.css'
 
 const ESTIMATES = [0.25, 0.5, 1, 2, 3, 5, 8]
 
-let _id = 0
-const uid = () => String(++_id)
+const uid = () => crypto.randomUUID()
 
 const fmtJ = n => `${parseFloat(n.toFixed(2))}j`
+
+/**
+ * Trouve le sous-ensemble minimal de tâches à retirer pour couvrir le surplus.
+ * Priorité : minimiser le dépassement (overshoot), puis le nombre de tâches.
+ * Recherche exhaustive (faisable jusqu'à ~18 tâches par membre).
+ */
+function suggestRemovals(memberTasks, surplus) {
+  if (surplus <= 0 || memberTasks.length === 0) return []
+
+  const n = memberTasks.length
+
+  if (n > 18) {
+    // Fallback glouton pour de très grandes listes
+    const sorted = [...memberTasks].sort((a, b) => b.estimate - a.estimate)
+    const result = []
+    let covered = 0
+    for (const t of sorted) {
+      if (covered >= surplus) break
+      result.push(t)
+      covered += t.estimate
+    }
+    return result
+  }
+
+  let best = null
+  let bestScore = Infinity
+
+  for (let mask = 1; mask < (1 << n); mask++) {
+    let total = 0
+    let count = 0
+    const subset = []
+    for (let i = 0; i < n; i++) {
+      if (mask & (1 << i)) {
+        total += memberTasks[i].estimate
+        subset.push(memberTasks[i])
+        count++
+      }
+    }
+    if (total >= surplus) {
+      // Score : overshoot (prioritaire) puis taille du sous-ensemble
+      const score = Math.round((total - surplus) * 10000) * 100 + count
+      if (score < bestScore) {
+        bestScore = score
+        best = subset
+      }
+    }
+  }
+
+  return best ?? []
+}
 
 export default function Velocity({ onBack }) {
   const [members, setMembers] = useState([])  // { id, name, capacity }
@@ -51,18 +100,36 @@ export default function Velocity({ onBack }) {
     setTasks(ts => ts.filter(t => t.id !== id))
   }
 
+  function updateTask(id, changes) {
+    setTasks(ts => ts.map(t => t.id === id ? { ...t, ...changes } : t))
+  }
+
   // --- computed ---
   const totalCapacity = members.reduce((s, m) => s + m.capacity, 0)
   const totalPlanned  = tasks.reduce((s, t) => s + t.estimate, 0)
   const teamLoad      = totalCapacity > 0 ? Math.round((totalPlanned / totalCapacity) * 100) : 0
 
-  function memberAssigned(memberId) {
-    return tasks
-      .filter(t => t.assigneeId === memberId)
-      .reduce((s, t) => s + t.estimate, 0)
-  }
+  const memberAssigned = memberId =>
+    tasks.filter(t => t.assigneeId === memberId).reduce((s, t) => s + t.estimate, 0)
 
-  const hasSummary = members.length > 0 || tasks.length > 0
+  // Membres surchargés + suggestions
+  const overloaded = members
+    .map(m => {
+      const assigned = memberAssigned(m.id)
+      const surplus  = parseFloat((assigned - m.capacity).toFixed(2))
+      if (surplus <= 0) return null
+      const memberTasks  = tasks.filter(t => t.assigneeId === m.id)
+      const suggested    = suggestRemovals(memberTasks, surplus)
+      const suggestedSum = suggested.reduce((s, t) => s + t.estimate, 0)
+      return {
+        member:  m,
+        assigned,
+        surplus,
+        suggested,
+        newLoad: parseFloat((assigned - suggestedSum).toFixed(2)),
+      }
+    })
+    .filter(Boolean)
 
   return (
     <div className={styles.page}>
@@ -71,178 +138,258 @@ export default function Velocity({ onBack }) {
         <h1 className={styles.title}>📈 Vélocité &amp; Capacité</h1>
       </div>
 
-      {/* ── Membres ── */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Membres de l'équipe</h2>
+      <div className={styles.layout}>
+        {/* ── Colonne gauche : Membres + Tâches ── */}
+        <div className={styles.main}>
 
-        <form className={styles.addForm} onSubmit={addMember}>
-          <input
-            className={styles.input}
-            value={mName}
-            onChange={e => setMName(e.target.value)}
-            placeholder="Prénom du membre"
-            maxLength={30}
-            required
-          />
-          <label className={styles.capLabel}>
-            <input
-              className={`${styles.input} ${styles.inputSmall}`}
-              type="number"
-              value={mCap}
-              onChange={e => setMCap(e.target.value)}
-              min="0.25"
-              step="0.25"
-              required
-            />
-            <span className={styles.unit}>j dispo</span>
-          </label>
-          <button type="submit" className={styles.addBtn}>+ Ajouter</button>
-        </form>
+          {/* Membres */}
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Membres de l'équipe</h2>
 
-        {members.length > 0 && (
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Membre</th>
-                  <th>Capa. max</th>
-                  <th>Assigné</th>
-                  <th>Charge</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {members.map(m => {
-                  const assigned = memberAssigned(m.id)
-                  const pct      = m.capacity > 0
-                    ? Math.min(Math.round((assigned / m.capacity) * 100), 100)
-                    : 0
-                  const over = assigned > m.capacity
-                  return (
-                    <tr key={m.id}>
-                      <td className={styles.memberName}>{m.name}</td>
-                      <td>{fmtJ(m.capacity)}</td>
-                      <td>{fmtJ(assigned)}</td>
-                      <td>
-                        <div className={styles.barRow}>
-                          <div className={styles.barTrack}>
-                            <div
-                              className={`${styles.barFill} ${over ? styles.barOver : ''}`}
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                          <span className={`${styles.pct} ${over ? styles.pctOver : ''}`}>
-                            {pct}%
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <button
-                          className={styles.removeBtn}
-                          onClick={() => removeMember(m.id)}
-                          aria-label={`Retirer ${m.name}`}
-                        >✕</button>
-                      </td>
+            <form className={styles.addForm} onSubmit={addMember}>
+              <input
+                className={styles.input}
+                value={mName}
+                onChange={e => setMName(e.target.value)}
+                placeholder="Prénom du membre"
+                maxLength={30}
+                required
+              />
+              <label className={styles.capLabel}>
+                <input
+                  className={`${styles.input} ${styles.inputSmall}`}
+                  type="number"
+                  value={mCap}
+                  onChange={e => setMCap(e.target.value)}
+                  min="0.25"
+                  step="0.25"
+                  required
+                />
+                <span className={styles.unit}>j dispo</span>
+              </label>
+              <button type="submit" className={styles.addBtn}>+ Ajouter</button>
+            </form>
+
+            {members.length > 0 && (
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Membre</th>
+                      <th>Capa. max</th>
+                      <th>Assigné</th>
+                      <th>Charge</th>
+                      <th></th>
                     </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+                  </thead>
+                  <tbody>
+                    {members.map(m => {
+                      const assigned = memberAssigned(m.id)
+                      const pct      = m.capacity > 0 ? Math.round((assigned / m.capacity) * 100) : 0
+                      const surplus  = parseFloat((assigned - m.capacity).toFixed(2))
+                      const over     = surplus > 0
+                      return (
+                        <tr key={m.id}>
+                          <td className={styles.memberName}>{m.name}</td>
+                          <td>{fmtJ(m.capacity)}</td>
+                          <td>{fmtJ(assigned)}</td>
+                          <td>
+                            <div className={styles.barRow}>
+                              <div className={styles.barTrack}>
+                                <div
+                                  className={`${styles.barFill} ${over ? styles.barOver : ''}`}
+                                  style={{ width: `${Math.min(pct, 100)}%` }}
+                                />
+                              </div>
+                              <span className={`${styles.pct} ${over ? styles.pctOver : ''}`}>
+                                {pct}%{over && <span className={styles.surplus}> (+{fmtJ(surplus)})</span>}
+                              </span>
+                            </div>
+                          </td>
+                          <td>
+                            <button
+                              className={styles.removeBtn}
+                              onClick={() => removeMember(m.id)}
+                              aria-label={`Retirer ${m.name}`}
+                            >✕</button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
 
-      {/* ── Tâches ── */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Tâches du sprint</h2>
+          {/* Tâches */}
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Tâches du sprint</h2>
 
-        <form className={styles.addForm} onSubmit={addTask}>
-          <input
-            className={`${styles.input} ${styles.inputWide}`}
-            value={tTitle}
-            onChange={e => setTTitle(e.target.value)}
-            placeholder="Nom de la tâche"
-            maxLength={60}
-            required
-          />
-          <select
-            className={styles.select}
-            value={tEst}
-            onChange={e => setTEst(e.target.value)}
-          >
-            {ESTIMATES.map(v => (
-              <option key={v} value={v}>{v}j</option>
-            ))}
-          </select>
-          <select
-            className={styles.select}
-            value={tAssignee}
-            onChange={e => setTAssignee(e.target.value)}
-          >
-            <option value="">— Assigné —</option>
-            {members.map(m => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
-          <button type="submit" className={styles.addBtn}>+ Ajouter</button>
-        </form>
-
-        {tasks.length > 0 && (
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Tâche</th>
-                  <th>Estimation</th>
-                  <th>Assigné</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map(t => (
-                  <tr key={t.id}>
-                    <td>{t.title}</td>
-                    <td>{fmtJ(t.estimate)}</td>
-                    <td>{members.find(m => m.id === t.assigneeId)?.name ?? <span className={styles.unassigned}>—</span>}</td>
-                    <td>
-                      <button
-                        className={styles.removeBtn}
-                        onClick={() => removeTask(t.id)}
-                        aria-label="Supprimer la tâche"
-                      >✕</button>
-                    </td>
-                  </tr>
+            <form className={styles.addForm} onSubmit={addTask}>
+              <input
+                className={`${styles.input} ${styles.inputWide}`}
+                value={tTitle}
+                onChange={e => setTTitle(e.target.value)}
+                placeholder="Nom de la tâche"
+                maxLength={60}
+                required
+              />
+              <select
+                className={styles.select}
+                value={tEst}
+                onChange={e => setTEst(e.target.value)}
+              >
+                {ESTIMATES.map(v => (
+                  <option key={v} value={v}>{v}</option>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+              </select>
+              <select
+                className={styles.select}
+                value={tAssignee}
+                onChange={e => setTAssignee(e.target.value)}
+              >
+                <option value="">— Assigné —</option>
+                {members.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+              <button type="submit" className={styles.addBtn}>+ Ajouter</button>
+            </form>
 
-      {/* ── Résumé ── */}
-      {hasSummary && (
-        <section className={`${styles.section} ${styles.summary}`}>
-          <h2 className={styles.sectionTitle}>Résumé du sprint</h2>
-          <div className={styles.stats}>
-            <div className={styles.stat}>
-              <span className={styles.statVal}>{fmtJ(totalPlanned)}</span>
-              <span className={styles.statLabel}>Vélocité planifiée</span>
+            {tasks.length > 0 && (
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Tâche</th>
+                      <th>Estimation</th>
+                      <th>Assigné</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tasks.map(t => (
+                      <tr key={t.id}>
+                        <td>{t.title}</td>
+                        <td>
+                          <select
+                            className={styles.inlineSelect}
+                            value={t.estimate}
+                            onChange={e => updateTask(t.id, { estimate: parseFloat(e.target.value) })}
+                          >
+                            {ESTIMATES.map(v => (
+                              <option key={v} value={v}>{v}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td>
+                          <select
+                            className={styles.inlineSelect}
+                            value={t.assigneeId}
+                            onChange={e => updateTask(t.id, { assigneeId: e.target.value })}
+                          >
+                            <option value="">— Assigné —</option>
+                            {members.map(m => (
+                              <option key={m.id} value={m.id}>{m.name}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td>
+                          <button
+                            className={styles.removeBtn}
+                            onClick={() => removeTask(t.id)}
+                            aria-label="Supprimer la tâche"
+                          >✕</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+        </div>
+
+        {/* ── Colonne droite : Résumé permanent + Rééquilibrage ── */}
+        <div className={styles.rightPanel}>
+          <section className={`${styles.section} ${styles.summary}`}>
+            <h2 className={styles.sectionTitle}>Résumé du sprint</h2>
+            <div className={styles.stats}>
+              <div className={styles.stat}>
+                <span className={styles.statVal}>{fmtJ(totalPlanned)}</span>
+                <span className={styles.statLabel}>Vélocité planifiée</span>
+              </div>
+              <div className={styles.statDivider} />
+              <div className={styles.stat}>
+                <span className={styles.statVal}>{fmtJ(totalCapacity)}</span>
+                <span className={styles.statLabel}>Capacité totale</span>
+              </div>
+              <div className={styles.statDivider} />
+              <div className={styles.stat}>
+                <span className={`${styles.statVal} ${teamLoad > 100 ? styles.statOver : ''}`}>
+                  {teamLoad}%
+                </span>
+                <span className={styles.statLabel}>Charge équipe</span>
+              </div>
             </div>
-            <div className={styles.statDivider} />
-            <div className={styles.stat}>
-              <span className={styles.statVal}>{fmtJ(totalCapacity)}</span>
-              <span className={styles.statLabel}>Capacité totale</span>
-            </div>
-            <div className={styles.statDivider} />
-            <div className={styles.stat}>
-              <span className={`${styles.statVal} ${teamLoad > 100 ? styles.statOver : ''}`}>
-                {teamLoad}%
-              </span>
-              <span className={styles.statLabel}>Charge équipe</span>
-            </div>
-          </div>
-        </section>
-      )}
+          </section>
+
+          {overloaded.length > 0 && (
+            <aside className={styles.sidebar}>
+              <div className={styles.sidebarHeader}>
+                <span className={styles.sidebarIcon}>⚠️</span>
+                <div>
+                  <h2 className={styles.sidebarTitle}>Rééquilibrage</h2>
+                  <p className={styles.sidebarSubtitle}>
+                    Suggestion pour ramener chaque membre sous sa capacité.
+                  </p>
+                </div>
+              </div>
+
+              {overloaded.map(({ member, surplus, suggested, newLoad }) => {
+                const newPct = member.capacity > 0
+                  ? Math.round((newLoad / member.capacity) * 100)
+                  : 0
+                return (
+                  <div key={member.id} className={styles.suggCard}>
+                    <div className={styles.suggHeader}>
+                      <span className={styles.suggName}>{member.name}</span>
+                      <span className={styles.suggBadge}>+{fmtJ(surplus)} surchargé</span>
+                    </div>
+
+                    <p className={styles.suggLabel}>Retirer :</p>
+
+                    {suggested.map(t => (
+                      <div key={t.id} className={styles.suggTask}>
+                        <div className={styles.suggTaskInfo}>
+                          <span className={styles.suggTaskName}>{t.title}</span>
+                          <span className={styles.suggTaskEst}>{fmtJ(t.estimate)}</span>
+                        </div>
+                        <button
+                          className={styles.suggRemoveBtn}
+                          onClick={() => updateTask(t.id, { assigneeId: '' })}
+                        >
+                          Désassigner
+                        </button>
+                      </div>
+                    ))}
+
+                    <div className={styles.suggResult}>
+                      Charge après :{' '}
+                      <strong className={styles.suggResultVal}>
+                        {fmtJ(newLoad)} / {fmtJ(member.capacity)}
+                      </strong>
+                      {' '}({newPct}%)
+                    </div>
+                  </div>
+                )
+              })}
+            </aside>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

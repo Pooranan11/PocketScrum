@@ -34,7 +34,7 @@ export default function App() {
 
   if (view === 'velocity') {
     return (
-      <div className="app">
+      <div className="app" style={{ justifyContent: 'flex-start' }}>
         <Velocity onBack={handleBack} />
       </div>
     )
