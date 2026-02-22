@@ -59,9 +59,18 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'none'; connect-src 'self'; frame-ancestors 'none'"
-        )
+        if settings.APP_ENV == "production":
+            csp = "default-src 'none'; connect-src 'self'; frame-ancestors 'none'"
+        else:
+            csp = (
+                "default-src 'none'; "
+                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "img-src 'self' data: https://cdn.jsdelivr.net; "
+                "connect-src 'self'; "
+                "frame-ancestors 'none'"
+            )
+        response.headers["Content-Security-Policy"] = csp
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         if settings.APP_ENV == "production":
             response.headers["Strict-Transport-Security"] = (
