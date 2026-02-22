@@ -42,7 +42,9 @@ export default function Home({ onJoin, onBack }) {
       {onBack && (
         <button className={styles.back} onClick={onBack}>← Retour</button>
       )}
-      <h1 className={styles.logo}>🃏 PocketScrum</h1>
+      <h1 className={styles.logo}>
+        🃏 <span className={styles.logoPocket}>Pocket</span><span className={styles.logoScrum}>Scrum</span>
+      </h1>
       <p className={styles.subtitle}>Planning poker en temps réel</p>
 
       <div className={styles.tabs}>

@@ -21,7 +21,9 @@ export default function Dashboard({ onSelectTool }) {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1 className={styles.logo}>🃏 PocketScrum</h1>
+        <h1 className={styles.logo}>
+          🃏 <span className={styles.logoPocket}>Pocket</span><span className={styles.logoScrum}>Scrum</span>
+        </h1>
         <p className={styles.subtitle}>Choisissez un outil Scrum pour commencer</p>
       </header>
 
@@ -40,6 +42,9 @@ export default function Dashboard({ onSelectTool }) {
             <span className={tool.available ? styles.badgeAvailable : styles.badgeSoon}>
               {tool.available ? 'Disponible' : 'Bientôt disponible'}
             </span>
+            {tool.available && (
+              <span className={styles.cardCta}>Commencer →</span>
+            )}
           </button>
         ))}
       </div>
