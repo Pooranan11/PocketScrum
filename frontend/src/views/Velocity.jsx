@@ -146,12 +146,15 @@ export default function Velocity({ onBack }) {
     <div className={styles.page}>
       <div className={styles.topBar}>
         <button className={styles.back} onClick={onBack}>← Retour</button>
-        <h1 className={styles.title}>📈 Vélocité &amp; Capacité</h1>
+        <h1 className={styles.title}>
+          <span className={styles.titleWhite}>Vélocité</span>
+          <span className={styles.titleAccent}> &amp; Capacité</span>
+        </h1>
       </div>
 
       {/* ── Sprint ── */}
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Sprint</h2>
+        <h2 className={`${styles.sectionTitle} ${styles.stSprint}`}>Sprint</h2>
         <div className={styles.sprintForm}>
           <input
             className={`${styles.input} ${styles.inputWide}`}
@@ -187,7 +190,7 @@ export default function Velocity({ onBack }) {
 
           {/* Membres */}
           <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>Membres de l'équipe</h2>
+            <h2 className={`${styles.sectionTitle} ${styles.stMembers}`}>Membres de l'équipe</h2>
 
             <form className={styles.addForm} onSubmit={addMember}>
               <input
@@ -267,7 +270,7 @@ export default function Velocity({ onBack }) {
 
           {/* Tâches */}
           <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>Tâches du sprint</h2>
+            <h2 className={`${styles.sectionTitle} ${styles.stTasks}`}>Tâches du sprint</h2>
 
             <form className={styles.addForm} onSubmit={addTask}>
               <input
@@ -394,7 +397,7 @@ export default function Velocity({ onBack }) {
         {/* ── Colonne droite : Résumé permanent + Rééquilibrage ── */}
         <div className={styles.rightPanel}>
           <section className={`${styles.section} ${styles.summary}`}>
-            <h2 className={styles.sectionTitle}>Résumé du sprint</h2>
+            <h2 className={`${styles.sectionTitle} ${styles.stSummary}`}>Résumé du sprint</h2>
             {(sprint.name || sprint.startDate || sprint.endDate) && (
               <div className={styles.sprintMeta}>
                 {sprint.name && <span className={styles.sprintMetaName}>{sprint.name}</span>}
