@@ -15,6 +15,13 @@ const tools = [
     description: 'Calculez la vélocité de votre équipe et visualisez sa capacité sprint après sprint.',
     available: true,
   },
+  {
+    id: 'visualisation',
+    icon: '📊',
+    name: 'Visualisation',
+    description: 'Importez un export Excel pour visualiser la charge, la répartition des tâches et les membres surchargés.',
+    available: true,
+  },
 ]
 
 export default function Dashboard({ onSelectTool }) {
