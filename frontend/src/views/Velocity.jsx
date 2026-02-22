@@ -130,23 +130,58 @@ export default function Velocity({ onBack }) {
     setTasks(ts => ts.filter(t => t.id !== id))
   }
 
-  function exportCapacityCSV() {
-    const header = ['Membre', 'Capacité max (j)', 'Assigné (j)', 'Charge (%)']
-    const rows = members.map(m => {
+  async function exportExcel() {
+    const XLSX = await import('xlsx')
+    const wb = XLSX.utils.book_new()
+    const memberName = id => members.find(m => m.id === id)?.name ?? '—'
+
+    // ── Onglet 1 : Résumé sprint ──
+    const summaryData = [
+      ['Sprint', sprint.name || '—'],
+      ['Début', sprint.startDate ? fmtDate(sprint.startDate) : '—'],
+      ['Fin',   sprint.endDate   ? fmtDate(sprint.endDate)   : '—'],
+      [],
+      ['Vélocité planifiée (j)', parseFloat(totalPlanned.toFixed(2))],
+      ['Capacité totale (j)',    parseFloat(totalCapacity.toFixed(2))],
+      ['Charge équipe (%)',      teamLoad],
+    ]
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData)
+    wsSummary['!cols'] = [{ wch: 26 }, { wch: 18 }]
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Résumé')
+
+    // ── Onglet 2 : Capacité membres ──
+    const capHeader = ['Membre', 'Capacité max (j)', 'Assigné (j)', 'Charge (%)', 'Statut']
+    const capRows = members.map(m => {
       const assigned = memberAssigned(m.id)
-      const pct = m.capacity > 0 ? Math.round((assigned / m.capacity) * 100) : 0
-      return [m.name, m.capacity, parseFloat(assigned.toFixed(2)), pct]
+      const pct      = m.capacity > 0 ? Math.round((assigned / m.capacity) * 100) : 0
+      const surplus  = parseFloat((assigned - m.capacity).toFixed(2))
+      return [
+        m.name,
+        m.capacity,
+        parseFloat(assigned.toFixed(2)),
+        pct,
+        surplus > 0 ? `Surchargé (+${fmtJ(surplus)})` : 'OK',
+      ]
     })
-    const csv = [header, ...rows]
-      .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
-      .join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `capacite${sprint.name ? '_' + sprint.name.replace(/\s+/g, '_') : ''}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    const wsCapacity = XLSX.utils.aoa_to_sheet([capHeader, ...capRows])
+    wsCapacity['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 22 }]
+    XLSX.utils.book_append_sheet(wb, wsCapacity, 'Capacité')
+
+    // ── Onglet 3 : Tâches ──
+    const taskHeader = ['Tâche', 'Estimation (j)', 'Assigné à', 'Début', 'Fin']
+    const taskRows = tasks.map(t => [
+      t.title,
+      t.estimate,
+      t.assigneeId ? memberName(t.assigneeId) : '—',
+      t.startDate  ? fmtDate(t.startDate)     : '—',
+      t.endDate    ? fmtDate(t.endDate)        : '—',
+    ])
+    const wsTasks = XLSX.utils.aoa_to_sheet([taskHeader, ...taskRows])
+    wsTasks['!cols'] = [{ wch: 34 }, { wch: 14 }, { wch: 20 }, { wch: 12 }, { wch: 12 }]
+    XLSX.utils.book_append_sheet(wb, wsTasks, 'Tâches')
+
+    const filename = `velocite${sprint.name ? '_' + sprint.name.replace(/\s+/g, '_') : ''}.xlsx`
+    XLSX.writeFile(wb, filename)
   }
 
   function updateTask(id, changes) {
@@ -204,8 +239,8 @@ export default function Velocity({ onBack }) {
             <div className={styles.sectionHeader}>
               <h2 className={`${styles.sectionTitle} ${styles.stMembers}`}>Membres de l'équipe</h2>
               {members.length > 0 && (
-                <button className={styles.csvBtn} onClick={exportCapacityCSV}>
-                  ↓ CSV
+                <button className={styles.csvBtn} onClick={exportExcel}>
+                  ↓ Excel
                 </button>
               )}
             </div>
