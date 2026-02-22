@@ -38,7 +38,7 @@
 /* ── Layout grid ── */
 .layout {
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: 1fr 320px;
   gap: 1.5rem;
   align-items: start;
 }
@@ -52,7 +52,13 @@
 .rightPanel {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
+  padding: 1.75rem;
+  background: rgba(6, 9, 20, 0.75);
+  border-radius: 20px;
+  border: 1px solid rgba(99,102,241,0.18);
+  box-shadow: 0 8px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.04);
+  backdrop-filter: blur(12px);
   position: sticky;
   top: 1.5rem;
 }
@@ -310,8 +316,23 @@
 
 /* ── Summary ── */
 .summary {
-  border: 1px solid #334155;
   flex: 1;
+}
+
+/* Sections à l'intérieur du rightPanel — fond transparent, séparées par une ligne */
+.rightPanel .section {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  border-radius: 0;
+  padding: 0 0 1.25rem;
+}
+
+.rightPanel .section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .stats {
@@ -350,15 +371,14 @@
 
 /* ── Sidebar ── */
 .sidebar {
-  background: rgba(10, 14, 26, 0.70);
-  border-radius: 16px;
-  padding: 1.5rem;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  box-shadow: 0 4px 24px rgba(0,0,0,.4);
-  border: 1px solid rgba(239,68,68,.22);
-  backdrop-filter: blur(8px);
+  box-shadow: none;
+  border: none;
 }
 
 .sidebarHeader {
@@ -481,6 +501,10 @@
 @media (max-width: 850px) {
   .layout {
     grid-template-columns: 1fr;
+  }
+
+  .main {
+    padding-right: 0;
   }
 
   .rightPanel {

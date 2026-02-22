@@ -152,38 +152,6 @@ export default function Velocity({ onBack }) {
         </h1>
       </div>
 
-      {/* ── Sprint ── */}
-      <section className={styles.section}>
-        <h2 className={`${styles.sectionTitle} ${styles.stSprint}`}>Sprint</h2>
-        <div className={styles.sprintForm}>
-          <input
-            className={`${styles.input} ${styles.inputWide}`}
-            value={sprint.name}
-            onChange={e => setSprint(s => ({ ...s, name: e.target.value }))}
-            placeholder="Nom du sprint (ex : Sprint 3)"
-            maxLength={50}
-          />
-          <label className={styles.dateLabel}>
-            <span className={styles.unit}>Début</span>
-            <input
-              className={styles.input}
-              type="date"
-              value={sprint.startDate}
-              onChange={e => setSprint(s => ({ ...s, startDate: e.target.value }))}
-            />
-          </label>
-          <label className={styles.dateLabel}>
-            <span className={styles.unit}>Fin</span>
-            <input
-              className={styles.input}
-              type="date"
-              value={sprint.endDate}
-              onChange={e => setSprint(s => ({ ...s, endDate: e.target.value }))}
-            />
-          </label>
-        </div>
-      </section>
-
       <div className={styles.layout}>
         {/* ── Colonne gauche : Membres + Tâches ── */}
         <div className={styles.main}>
@@ -394,8 +362,39 @@ export default function Velocity({ onBack }) {
 
         </div>
 
-        {/* ── Colonne droite : Résumé permanent + Rééquilibrage ── */}
+        {/* ── Colonne droite : Sprint + Résumé + Rééquilibrage ── */}
         <div className={styles.rightPanel}>
+          <section className={styles.section}>
+            <h2 className={`${styles.sectionTitle} ${styles.stSprint}`}>Sprint</h2>
+            <div className={styles.sprintForm}>
+              <input
+                className={`${styles.input} ${styles.inputWide}`}
+                value={sprint.name}
+                onChange={e => setSprint(s => ({ ...s, name: e.target.value }))}
+                placeholder="Nom du sprint (ex : Sprint 3)"
+                maxLength={50}
+              />
+              <label className={styles.dateLabel}>
+                <span className={styles.unit}>Début</span>
+                <input
+                  className={styles.input}
+                  type="date"
+                  value={sprint.startDate}
+                  onChange={e => setSprint(s => ({ ...s, startDate: e.target.value }))}
+                />
+              </label>
+              <label className={styles.dateLabel}>
+                <span className={styles.unit}>Fin</span>
+                <input
+                  className={styles.input}
+                  type="date"
+                  value={sprint.endDate}
+                  onChange={e => setSprint(s => ({ ...s, endDate: e.target.value }))}
+                />
+              </label>
+            </div>
+          </section>
+
           <section className={`${styles.section} ${styles.summary}`}>
             <h2 className={`${styles.sectionTitle} ${styles.stSummary}`}>Résumé du sprint</h2>
             {(sprint.name || sprint.startDate || sprint.endDate) && (
