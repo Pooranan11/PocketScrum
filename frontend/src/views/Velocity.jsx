@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import styles from './Velocity.module.css'
 
 const ESTIMATES = [0.25, 0.5, 1, 2, 3, 5, 8]
+const STORAGE_KEY = 'pocketscrum_velocity'
 
 const uid = () => crypto.randomUUID()
 
@@ -10,6 +11,20 @@ const fmtJ = n => `${parseFloat(n.toFixed(2))}j`
 const fmtDate = d => d
   ? new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })
   : '—'
+
+// Reconvertit DD/MM/YY (format export) en YYYY-MM-DD (format input date)
+const parseFrDate = s => {
+  if (!s || s === '—') return ''
+  const parts = String(s).split('/')
+  if (parts.length !== 3) return ''
+  const [d, m, y] = parts
+  return `20${y.padStart(2, '0')}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
+}
+
+const loadSaved = () => {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') }
+  catch { return null }
+}
 
 /**
  * Parmi les membres disponibles, retourne celui avec le plus de capacité libre
@@ -81,9 +96,15 @@ function suggestRemovals(memberTasks, surplus) {
 }
 
 export default function Velocity({ onBack, onVisualize }) {
-  const [sprint,  setSprint]  = useState({ name: '', startDate: '', endDate: '' })
-  const [members, setMembers] = useState([])  // { id, name, capacity }
-  const [tasks, setTasks]     = useState([])  // { id, title, estimate, assigneeId, startDate, endDate }
+  const saved = loadSaved()
+  const [sprint,  setSprint]  = useState(saved?.sprint  ?? { name: '', startDate: '', endDate: '' })
+  const [members, setMembers] = useState(saved?.members ?? [])
+  const [tasks,   setTasks]   = useState(saved?.tasks   ?? [])
+
+  // Persistance automatique
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ sprint, members, tasks }))
+  }, [sprint, members, tasks])
 
   const [mName, setMName] = useState('')
   const [mCap,  setMCap]  = useState('5')
@@ -217,6 +238,44 @@ export default function Velocity({ onBack, onVisualize }) {
     })
   }
 
+  async function importExcel(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    const XLSX = await import('xlsx')
+    const buf  = await file.arrayBuffer()
+    const wb   = XLSX.read(buf, { type: 'array' })
+
+    // Sprint
+    const sumRows = XLSX.utils.sheet_to_json(wb.Sheets['Résumé'], { header: 1 })
+    setSprint({
+      name:      String(sumRows[0]?.[1] ?? ''),
+      startDate: parseFrDate(String(sumRows[1]?.[1] ?? '')),
+      endDate:   parseFrDate(String(sumRows[2]?.[1] ?? '')),
+    })
+
+    // Membres
+    const capRows = XLSX.utils.sheet_to_json(wb.Sheets['Capacité'], { header: 1 })
+    const importedMembers = capRows.slice(1)
+      .filter(r => r[0])
+      .map(r => ({ id: uid(), name: String(r[0]), capacity: Number(r[1]) || 0 }))
+    setMembers(importedMembers)
+
+    // Tâches
+    const taskRows = XLSX.utils.sheet_to_json(wb.Sheets['Tâches'], { header: 1 })
+    setTasks(taskRows.slice(1)
+      .filter(r => r[0])
+      .map(r => ({
+        id:         uid(),
+        title:      String(r[0]),
+        estimate:   Number(r[1]) || 1,
+        assigneeId: importedMembers.find(m => m.name === r[2])?.id ?? '',
+        startDate:  parseFrDate(String(r[3] ?? '')),
+        endDate:    parseFrDate(String(r[4] ?? '')),
+      }))
+    )
+    e.target.value = ''
+  }
+
   function updateTask(id, changes) {
     setTasks(ts => ts.map(t => t.id === id ? { ...t, ...changes } : t))
   }
@@ -261,6 +320,10 @@ export default function Velocity({ onBack, onVisualize }) {
           <span className={styles.titleWhite}>Vélocité</span>
           <span className={styles.titleAccent}> &amp; Capacité</span>
         </h1>
+        <label className={styles.importBtn}>
+          ↑ Importer Excel
+          <input type="file" accept=".xlsx" onChange={importExcel} style={{ display: 'none' }} />
+        </label>
       </div>
 
       <div className={styles.layout}>

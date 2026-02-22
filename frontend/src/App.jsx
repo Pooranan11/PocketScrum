@@ -52,7 +52,10 @@ export default function App() {
     return (
       <Suspense fallback={<div className="app" />}>
         <div className="app" style={{ justifyContent: 'flex-start' }}>
-          <Visualisation onBack={handleBack} initialData={vizData} />
+          <Visualisation
+            onBack={vizData ? () => setView('velocity') : handleBack}
+            initialData={vizData}
+          />
         </div>
       </Suspense>
     )
