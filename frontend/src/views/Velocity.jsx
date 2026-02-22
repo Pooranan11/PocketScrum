@@ -324,6 +324,18 @@ export default function Velocity({ onBack, onVisualize }) {
           ↑ Importer Excel
           <input type="file" accept=".xlsx" onChange={importExcel} style={{ display: 'none' }} />
         </label>
+        {(members.length > 0 || tasks.length > 0 || sprint.name) && (
+          <button
+            className={styles.clearBtn}
+            onClick={() => {
+              setSprint({ name: '', startDate: '', endDate: '' })
+              setMembers([])
+              setTasks([])
+            }}
+          >
+            Tout supprimer
+          </button>
+        )}
       </div>
 
       <div className={styles.layout}>

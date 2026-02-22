@@ -52,6 +52,25 @@
   color: #a5b4fc;
 }
 
+.clearBtn {
+  background: none;
+  color: #475569;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  font-size: .75rem;
+  font-weight: 600;
+  padding: .35rem .75rem;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.clearBtn:hover {
+  background: rgba(239,68,68,.1);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
 .titleWhite  { color: #ffffff; }
 .titleAccent { color: #6366f1; }
 
