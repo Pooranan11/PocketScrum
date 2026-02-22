@@ -3,10 +3,30 @@ Configuration centralisée de l'application via variables d'environnement.
 Utilise pydantic-settings pour valider et typer la config au démarrage.
 """
 import json
-from typing import Any, List
+from typing import Any, List, Tuple, Type
 
 from pydantic import field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    EnvSettingsSource,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
+
+
+class _LenientEnvSource(EnvSettingsSource):
+    """
+    Source d'env qui retourne la valeur brute quand json.loads() échoue sur un
+    champ complexe (List, Dict…), au lieu de lever une SettingsError.
+    Les field_validators pydantic peuvent alors gérer des formats alternatifs
+    (URL simple, CSV, …).
+    """
+
+    def decode_complex_value(self, field_name: str, field: Any, value: Any) -> Any:
+        try:
+            return super().decode_complex_value(field_name, field, value)
+        except Exception:
+            return value
 
 
 class Settings(BaseSettings):
@@ -18,7 +38,6 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "changez-moi-en-production"
 
     # --- CORS ---
-    # Liste des origines autorisées, configurable par variable d'environnement.
     # Accepte soit une liste JSON ["url1","url2"] soit des URLs séparées par des virgules.
     CORS_ORIGINS: List[str] = ["http://localhost:5173"]
 
@@ -33,6 +52,23 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
     )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: Type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        secrets_dir: PydanticBaseSettingsSource,
+    ) -> Tuple[PydanticBaseSettingsSource, ...]:
+        # Remplace la source env système par notre version tolérante au non-JSON
+        return (
+            init_settings,
+            _LenientEnvSource(settings_cls),
+            dotenv_settings,
+            secrets_dir,
+        )
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
