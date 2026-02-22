@@ -60,14 +60,16 @@ class Settings(BaseSettings):
         init_settings: PydanticBaseSettingsSource,
         env_settings: PydanticBaseSettingsSource,
         dotenv_settings: PydanticBaseSettingsSource,
-        secrets_dir: PydanticBaseSettingsSource,
+        **kwargs: PydanticBaseSettingsSource,
     ) -> Tuple[PydanticBaseSettingsSource, ...]:
-        # Remplace la source env système par notre version tolérante au non-JSON
+        # Remplace la source env système par notre version tolérante au non-JSON.
+        # **kwargs absorbe 'secrets_dir' (pydantic-settings <2.1) ou
+        # 'file_secret_settings' (>=2.1) pour rester compatible avec les deux.
         return (
             init_settings,
             _LenientEnvSource(settings_cls),
             dotenv_settings,
-            secrets_dir,
+            *kwargs.values(),
         )
 
     @field_validator("CORS_ORIGINS", mode="before")
