@@ -9,6 +9,7 @@ backend/.ruff_cache/
 
 # Secrets — jamais commités
 backend/.env
+.env
 
 # Node
 frontend/node_modules/
