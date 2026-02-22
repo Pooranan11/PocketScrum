@@ -8,7 +8,6 @@ import pytest
 import pytest_asyncio
 from fakeredis.aioredis import FakeRedis
 from fastapi.testclient import TestClient
-from httpx import ASGITransport, AsyncClient
 
 # Configuration de pytest-asyncio en mode "auto" pour tous les tests async
 pytest_plugins = ("pytest_asyncio",)
@@ -71,35 +70,3 @@ def test_client() -> TestClient:
     redis_module._redis_client = None
 
 
-@pytest_asyncio.fixture
-async def async_client(fake_redis: FakeRedis) -> AsyncClient:
-    """
-    Client HTTP asynchrone pour les tests async nécessitant await.
-    Partage le même FakeRedis que la fixture fake_redis (même event loop).
-    """
-    import core.redis as redis_module
-    from core.redis import get_redis
-    from main import app
-
-    async def override_redis():
-        return fake_redis
-
-    import main as main_module
-    original_init = main_module.init_redis
-    original_close = main_module.close_redis
-
-    async def _noop_init():
-        pass
-
-    async def _noop_close():
-        pass
-
-    main_module.init_redis = _noop_init
-    main_module.close_redis = _noop_close
-
-    app.dependency_overrides[get_redis] = override_redis
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        yield client
-    app.dependency_overrides.clear()
-    main_module.init_redis = original_init
-    main_module.close_redis = original_close
