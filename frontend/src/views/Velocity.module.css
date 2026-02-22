@@ -1,0 +1,241 @@
+.page {
+  width: 100%;
+  max-width: 860px;
+  padding: 2.5rem 1.5rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* ── Top bar ── */
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+}
+
+.back {
+  background: none;
+  color: #94a3b8;
+  font-size: .85rem;
+  padding: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.back:hover { color: #e2e8f0; }
+
+.title {
+  font-size: 1.5rem;
+  letter-spacing: -.4px;
+}
+
+/* ── Section ── */
+.section {
+  background: #1e293b;
+  border-radius: 16px;
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,.3);
+}
+
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 0;
+}
+
+/* ── Add form ── */
+.addForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+  align-items: center;
+}
+
+.input {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #e2e8f0;
+  padding: .5rem .75rem;
+  font-size: .875rem;
+  min-width: 0;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+.inputWide { flex: 1 1 200px; }
+.inputSmall { width: 5rem; }
+
+.capLabel {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+
+.unit {
+  font-size: .8rem;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.select {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #e2e8f0;
+  padding: .5rem .6rem;
+  font-size: .875rem;
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+.addBtn {
+  background: #6366f1;
+  color: #fff;
+  padding: .5rem 1rem;
+  border-radius: 8px;
+  font-size: .875rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.addBtn:hover { background: #4f52d1; }
+
+/* ── Table ── */
+.tableWrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid #334155;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .875rem;
+}
+
+.table th {
+  background: #0f172a;
+  color: #64748b;
+  font-weight: 600;
+  text-align: left;
+  padding: .6rem .9rem;
+  border-bottom: 1px solid #334155;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: .65rem .9rem;
+  color: #cbd5e1;
+  border-bottom: 1px solid #1e293b;
+}
+
+.table tbody tr:last-child td { border-bottom: none; }
+
+.table tbody tr:hover { background: rgba(255,255,255,.03); }
+
+.memberName { font-weight: 500; color: #e2e8f0; }
+
+.unassigned { color: #475569; }
+
+/* ── Progress bar ── */
+.barRow {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+}
+
+.barTrack {
+  flex: 1;
+  height: 8px;
+  background: #0f172a;
+  border-radius: 999px;
+  overflow: hidden;
+  min-width: 80px;
+}
+
+.barFill {
+  height: 100%;
+  background: #6366f1;
+  border-radius: 999px;
+  transition: width .3s ease;
+}
+
+.barOver { background: #ef4444; }
+
+.pct { font-size: .8rem; color: #94a3b8; min-width: 2.8rem; text-align: right; }
+.pctOver { color: #ef4444; }
+
+/* ── Remove button ── */
+.removeBtn {
+  background: none;
+  color: #475569;
+  font-size: .8rem;
+  padding: .2rem .4rem;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.removeBtn:hover { color: #ef4444; background: rgba(239,68,68,.1); }
+
+/* ── Summary ── */
+.summary { border: 1px solid #334155; }
+
+.stats {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .3rem;
+}
+
+.statDivider {
+  width: 1px;
+  height: 3rem;
+  background: #334155;
+}
+
+.statVal {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #818cf8;
+  line-height: 1;
+}
+
+.statOver { color: #ef4444; }
+
+.statLabel {
+  font-size: .78rem;
+  color: #64748b;
+  text-align: center;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .addForm { flex-direction: column; align-items: stretch; }
+  .inputWide { flex: none; }
+  .capLabel { justify-content: space-between; }
+
+  .stats { flex-direction: column; gap: 1.2rem; }
+  .statDivider { display: none; }
+}

@@ -1,0 +1,102 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem 1.5rem;
+  min-height: 100vh;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.logo {
+  font-size: 2.2rem;
+  letter-spacing: -.5px;
+}
+
+.subtitle {
+  color: #94a3b8;
+  margin-top: .4rem;
+  font-size: .95rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 900px;
+}
+
+@media (max-width: 700px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: #1e293b;
+  border-radius: 16px;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .75rem;
+  text-align: center;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color .2s, transform .15s, box-shadow .2s;
+  box-shadow: 0 4px 20px rgba(0,0,0,.3);
+}
+
+.card:hover:not(:disabled) {
+  border-color: #6366f1;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(99,102,241,.25);
+}
+
+.cardDisabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.toolName {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 0;
+}
+
+.toolDesc {
+  font-size: .85rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.badgeAvailable {
+  margin-top: .5rem;
+  padding: .25rem .75rem;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 600;
+  background: rgba(99,102,241,.2);
+  color: #818cf8;
+}
+
+.badgeSoon {
+  margin-top: .5rem;
+  padding: .25rem .75rem;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 600;
+  background: rgba(148,163,184,.12);
+  color: #64748b;
+}

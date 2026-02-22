@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createRoom, joinRoom } from '../api.js'
 import styles from './Home.module.css'
 
-export default function Home({ onJoin }) {
+export default function Home({ onJoin, onBack }) {
   const [tab, setTab] = useState('create') // 'create' | 'join'
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
@@ -39,6 +39,9 @@ export default function Home({ onJoin }) {
 
   return (
     <div className={styles.card}>
+      {onBack && (
+        <button className={styles.back} onClick={onBack}>← Retour</button>
+      )}
       <h1 className={styles.logo}>🃏 PocketScrum</h1>
       <p className={styles.subtitle}>Planning poker en temps réel</p>
 
