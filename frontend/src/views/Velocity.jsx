@@ -80,7 +80,7 @@ function suggestRemovals(memberTasks, surplus) {
   return best ?? []
 }
 
-export default function Velocity({ onBack }) {
+export default function Velocity({ onBack, onVisualize }) {
   const [sprint,  setSprint]  = useState({ name: '', startDate: '', endDate: '' })
   const [members, setMembers] = useState([])  // { id, name, capacity }
   const [tasks, setTasks]     = useState([])  // { id, title, estimate, assigneeId, startDate, endDate }
@@ -182,6 +182,39 @@ export default function Velocity({ onBack }) {
 
     const filename = `velocite${sprint.name ? '_' + sprint.name.replace(/\s+/g, '_') : ''}.xlsx`
     XLSX.writeFile(wb, filename)
+  }
+
+  function handleVisualize() {
+    const mName = id => members.find(m => m.id === id)?.name ?? '—'
+    onVisualize({
+      sprint: {
+        name:          sprint.name || '',
+        startDate:     sprint.startDate ? fmtDate(sprint.startDate) : '—',
+        endDate:       sprint.endDate   ? fmtDate(sprint.endDate)   : '—',
+        totalPlanned:  parseFloat(totalPlanned.toFixed(2)),
+        totalCapacity: parseFloat(totalCapacity.toFixed(2)),
+        teamLoad,
+      },
+      members: members.map(m => {
+        const assigned = memberAssigned(m.id)
+        const pct      = m.capacity > 0 ? Math.round((assigned / m.capacity) * 100) : 0
+        const surplus  = parseFloat((assigned - m.capacity).toFixed(2))
+        return {
+          name:     m.name,
+          capacity: m.capacity,
+          assigned: parseFloat(assigned.toFixed(2)),
+          load:     pct,
+          status:   surplus > 0 ? `Surchargé (+${fmtJ(surplus)})` : 'OK',
+        }
+      }),
+      tasks: tasks.map(t => ({
+        title:     t.title,
+        estimate:  t.estimate,
+        assignee:  t.assigneeId ? mName(t.assigneeId) : '—',
+        startDate: t.startDate  ? fmtDate(t.startDate) : '—',
+        endDate:   t.endDate    ? fmtDate(t.endDate)   : '—',
+      })),
+    })
   }
 
   function updateTask(id, changes) {
@@ -474,9 +507,10 @@ export default function Velocity({ onBack }) {
           </section>
 
           {members.length > 0 && (
-            <button className={styles.csvBtn} onClick={exportExcel}>
-              ↓ Exporter Excel
-            </button>
+            <div className={styles.exportBtns}>
+              <button className={styles.csvBtn} onClick={exportExcel}>↓ Excel</button>
+              <button className={styles.vizBtn} onClick={handleVisualize}>Visualiser →</button>
+            </div>
           )}
 
           <section className={`${styles.section} ${styles.summary}`}>

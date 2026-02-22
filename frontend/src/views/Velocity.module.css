@@ -91,8 +91,14 @@
 .stTasks   { color: #93c5fd; border-color: #3b82f6; }
 .stSummary { color: #6ee7b7; border-color: #10b981; }
 
-/* ── Excel export button ── */
+/* ── Export / Visualise buttons ── */
+.exportBtns {
+  display: flex;
+  gap: .6rem;
+}
+
 .csvBtn {
+  flex: 1;
   background: rgba(99,102,241,.12);
   color: #818cf8;
   border: 1px solid rgba(99,102,241,.25);
@@ -101,9 +107,8 @@
   font-weight: 600;
   padding: .55rem .75rem;
   cursor: pointer;
-  width: 100%;
-  letter-spacing: .03em;
   text-align: center;
+  letter-spacing: .03em;
 }
 
 .csvBtn:hover {
@@ -111,6 +116,21 @@
   border-color: rgba(99,102,241,.5);
   color: #a5b4fc;
 }
+
+.vizBtn {
+  flex: 1;
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: .8rem;
+  font-weight: 600;
+  padding: .55rem .75rem;
+  cursor: pointer;
+  text-align: center;
+}
+
+.vizBtn:hover { background: #4f52d1; }
 
 /* ── Add form ── */
 .addForm {

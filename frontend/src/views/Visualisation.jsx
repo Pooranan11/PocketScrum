@@ -64,8 +64,8 @@ async function parseExcel(file) {
   return { sprint, members, tasks }
 }
 
-export default function Visualisation({ onBack }) {
-  const [data,     setData]     = useState(null)
+export default function Visualisation({ onBack, initialData = null }) {
+  const [data,     setData]     = useState(initialData)
   const [error,    setError]    = useState('')
   const [dragging, setDragging] = useState(false)
 

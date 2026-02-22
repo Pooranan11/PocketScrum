@@ -8,14 +8,19 @@ import './App.css'
 const Visualisation = lazy(() => import('./views/Visualisation.jsx'))
 
 export default function App() {
-  const [view, setView] = useState('dashboard') // 'dashboard' | 'game' | 'velocity' | 'visualisation'
-  // session : { room_code, player_id, token, is_scrum_master }
+  const [view,    setView]    = useState('dashboard') // 'dashboard' | 'game' | 'velocity' | 'visualisation'
   const [session, setSession] = useState(null)
+  const [vizData, setVizData] = useState(null)
 
   const handleSelectTool = useCallback((tool) => {
     if (tool === 'planning-poker') setView('game')
     if (tool === 'velocity')       setView('velocity')
-    if (tool === 'visualisation')  setView('visualisation')
+    if (tool === 'visualisation')  { setVizData(null); setView('visualisation') }
+  }, [])
+
+  const handleVisualize = useCallback((data) => {
+    setVizData(data)
+    setView('visualisation')
   }, [])
 
   const handleJoin = useCallback((s) => setSession(s), [])
@@ -38,7 +43,7 @@ export default function App() {
   if (view === 'velocity') {
     return (
       <div className="app" style={{ justifyContent: 'flex-start' }}>
-        <Velocity onBack={handleBack} />
+        <Velocity onBack={handleBack} onVisualize={handleVisualize} />
       </div>
     )
   }
@@ -47,7 +52,7 @@ export default function App() {
     return (
       <Suspense fallback={<div className="app" />}>
         <div className="app" style={{ justifyContent: 'flex-start' }}>
-          <Visualisation onBack={handleBack} />
+          <Visualisation onBack={handleBack} initialData={vizData} />
         </div>
       </Suspense>
     )
