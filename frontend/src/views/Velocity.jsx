@@ -130,6 +130,25 @@ export default function Velocity({ onBack }) {
     setTasks(ts => ts.filter(t => t.id !== id))
   }
 
+  function exportCapacityCSV() {
+    const header = ['Membre', 'Capacité max (j)', 'Assigné (j)', 'Charge (%)']
+    const rows = members.map(m => {
+      const assigned = memberAssigned(m.id)
+      const pct = m.capacity > 0 ? Math.round((assigned / m.capacity) * 100) : 0
+      return [m.name, m.capacity, parseFloat(assigned.toFixed(2)), pct]
+    })
+    const csv = [header, ...rows]
+      .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `capacite${sprint.name ? '_' + sprint.name.replace(/\s+/g, '_') : ''}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   function updateTask(id, changes) {
     setTasks(ts => ts.map(t => t.id === id ? { ...t, ...changes } : t))
   }
@@ -182,7 +201,14 @@ export default function Velocity({ onBack }) {
 
           {/* Membres */}
           <section className={styles.section}>
-            <h2 className={`${styles.sectionTitle} ${styles.stMembers}`}>Membres de l'équipe</h2>
+            <div className={styles.sectionHeader}>
+              <h2 className={`${styles.sectionTitle} ${styles.stMembers}`}>Membres de l'équipe</h2>
+              {members.length > 0 && (
+                <button className={styles.csvBtn} onClick={exportCapacityCSV}>
+                  ↓ CSV
+                </button>
+              )}
+            </div>
 
             <form className={styles.addForm} onSubmit={addMember}>
               <input

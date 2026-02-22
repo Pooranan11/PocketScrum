@@ -91,6 +91,35 @@
 .stTasks   { color: #93c5fd; border-color: #3b82f6; }
 .stSummary { color: #6ee7b7; border-color: #10b981; }
 
+/* ── Section header row ── */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* ── CSV export button ── */
+.csvBtn {
+  background: rgba(99,102,241,.12);
+  color: #818cf8;
+  border: 1px solid rgba(99,102,241,.25);
+  border-radius: 6px;
+  font-size: .75rem;
+  font-weight: 600;
+  padding: .3rem .7rem;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: .03em;
+}
+
+.csvBtn:hover {
+  background: rgba(99,102,241,.25);
+  border-color: rgba(99,102,241,.5);
+  color: #a5b4fc;
+}
+
 /* ── Add form ── */
 .addForm {
   display: flex;
