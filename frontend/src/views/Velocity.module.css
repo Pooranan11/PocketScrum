@@ -213,6 +213,64 @@
 
 .removeBtn:hover { color: #ef4444; background: rgba(239,68,68,.1); }
 
+/* ── Sprint form ── */
+.sprintForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+  align-items: center;
+}
+
+.dateLabel {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+
+/* ── Sprint meta in summary ── */
+.sprintMeta {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+  padding-bottom: .75rem;
+  border-bottom: 1px solid #334155;
+}
+
+.sprintMetaName {
+  font-size: .95rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.sprintMetaDates {
+  font-size: .78rem;
+  color: #64748b;
+}
+
+/* ── Inline date input (tableau tâches) ── */
+.inlineDateInput {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #cbd5e1;
+  padding: .25rem .3rem;
+  font-size: .8rem;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  width: 120px;
+}
+
+.inlineDateInput:hover {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.inlineDateInput:focus {
+  outline: none;
+  background: #0f172a;
+  border-color: #6366f1;
+}
+
 /* ── Inline select (tableau tâches) ── */
 .inlineSelect {
   background: transparent;

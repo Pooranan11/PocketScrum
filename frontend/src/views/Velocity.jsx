@@ -7,6 +7,10 @@ const uid = () => crypto.randomUUID()
 
 const fmtJ = n => `${parseFloat(n.toFixed(2))}j`
 
+const fmtDate = d => d
+  ? new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+  : '—'
+
 /**
  * Trouve le sous-ensemble minimal de tâches à retirer pour couvrir le surplus.
  * Priorité : minimiser le dépassement (overshoot), puis le nombre de tâches.
@@ -58,15 +62,18 @@ function suggestRemovals(memberTasks, surplus) {
 }
 
 export default function Velocity({ onBack }) {
+  const [sprint,  setSprint]  = useState({ name: '', startDate: '', endDate: '' })
   const [members, setMembers] = useState([])  // { id, name, capacity }
-  const [tasks, setTasks]     = useState([])  // { id, title, estimate, assigneeId }
+  const [tasks, setTasks]     = useState([])  // { id, title, estimate, assigneeId, startDate, endDate }
 
   const [mName, setMName] = useState('')
   const [mCap,  setMCap]  = useState('5')
 
-  const [tTitle,    setTTitle]    = useState('')
-  const [tEst,      setTEst]      = useState('1')
-  const [tAssignee, setTAssignee] = useState('')
+  const [tTitle,     setTTitle]     = useState('')
+  const [tEst,       setTEst]       = useState('1')
+  const [tAssignee,  setTAssignee]  = useState('')
+  const [tStartDate, setTStartDate] = useState('')
+  const [tEndDate,   setTEndDate]   = useState('')
 
   // --- actions ---
   function addMember(e) {
@@ -90,10 +97,14 @@ export default function Velocity({ onBack }) {
       title: tTitle.trim(),
       estimate: parseFloat(tEst),
       assigneeId: tAssignee,
+      startDate: tStartDate,
+      endDate: tEndDate,
     }])
     setTTitle('')
     setTEst('1')
     setTAssignee('')
+    setTStartDate('')
+    setTEndDate('')
   }
 
   function removeTask(id) {
@@ -137,6 +148,38 @@ export default function Velocity({ onBack }) {
         <button className={styles.back} onClick={onBack}>← Retour</button>
         <h1 className={styles.title}>📈 Vélocité &amp; Capacité</h1>
       </div>
+
+      {/* ── Sprint ── */}
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>Sprint</h2>
+        <div className={styles.sprintForm}>
+          <input
+            className={`${styles.input} ${styles.inputWide}`}
+            value={sprint.name}
+            onChange={e => setSprint(s => ({ ...s, name: e.target.value }))}
+            placeholder="Nom du sprint (ex : Sprint 3)"
+            maxLength={50}
+          />
+          <label className={styles.dateLabel}>
+            <span className={styles.unit}>Début</span>
+            <input
+              className={styles.input}
+              type="date"
+              value={sprint.startDate}
+              onChange={e => setSprint(s => ({ ...s, startDate: e.target.value }))}
+            />
+          </label>
+          <label className={styles.dateLabel}>
+            <span className={styles.unit}>Fin</span>
+            <input
+              className={styles.input}
+              type="date"
+              value={sprint.endDate}
+              onChange={e => setSprint(s => ({ ...s, endDate: e.target.value }))}
+            />
+          </label>
+        </div>
+      </section>
 
       <div className={styles.layout}>
         {/* ── Colonne gauche : Membres + Tâches ── */}
@@ -254,6 +297,24 @@ export default function Velocity({ onBack }) {
                   <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>
+              <label className={styles.dateLabel}>
+                <span className={styles.unit}>Début</span>
+                <input
+                  className={styles.input}
+                  type="date"
+                  value={tStartDate}
+                  onChange={e => setTStartDate(e.target.value)}
+                />
+              </label>
+              <label className={styles.dateLabel}>
+                <span className={styles.unit}>Fin</span>
+                <input
+                  className={styles.input}
+                  type="date"
+                  value={tEndDate}
+                  onChange={e => setTEndDate(e.target.value)}
+                />
+              </label>
               <button type="submit" className={styles.addBtn}>+ Ajouter</button>
             </form>
 
@@ -265,6 +326,8 @@ export default function Velocity({ onBack }) {
                       <th>Tâche</th>
                       <th>Estimation</th>
                       <th>Assigné</th>
+                      <th>Début</th>
+                      <th>Fin</th>
                       <th></th>
                     </tr>
                   </thead>
@@ -296,6 +359,22 @@ export default function Velocity({ onBack }) {
                           </select>
                         </td>
                         <td>
+                          <input
+                            className={styles.inlineDateInput}
+                            type="date"
+                            value={t.startDate ?? ''}
+                            onChange={e => updateTask(t.id, { startDate: e.target.value })}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className={styles.inlineDateInput}
+                            type="date"
+                            value={t.endDate ?? ''}
+                            onChange={e => updateTask(t.id, { endDate: e.target.value })}
+                          />
+                        </td>
+                        <td>
                           <button
                             className={styles.removeBtn}
                             onClick={() => removeTask(t.id)}
@@ -316,6 +395,16 @@ export default function Velocity({ onBack }) {
         <div className={styles.rightPanel}>
           <section className={`${styles.section} ${styles.summary}`}>
             <h2 className={styles.sectionTitle}>Résumé du sprint</h2>
+            {(sprint.name || sprint.startDate || sprint.endDate) && (
+              <div className={styles.sprintMeta}>
+                {sprint.name && <span className={styles.sprintMetaName}>{sprint.name}</span>}
+                {(sprint.startDate || sprint.endDate) && (
+                  <span className={styles.sprintMetaDates}>
+                    {fmtDate(sprint.startDate)} → {fmtDate(sprint.endDate)}
+                  </span>
+                )}
+              </div>
+            )}
             <div className={styles.stats}>
               <div className={styles.stat}>
                 <span className={styles.statVal}>{fmtJ(totalPlanned)}</span>
