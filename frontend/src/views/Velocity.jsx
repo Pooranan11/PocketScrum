@@ -236,14 +236,7 @@ export default function Velocity({ onBack }) {
 
           {/* Membres */}
           <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <h2 className={`${styles.sectionTitle} ${styles.stMembers}`}>Membres de l'équipe</h2>
-              {members.length > 0 && (
-                <button className={styles.csvBtn} onClick={exportExcel}>
-                  ↓ Excel
-                </button>
-              )}
-            </div>
+            <h2 className={`${styles.sectionTitle} ${styles.stMembers}`}>Membres de l'équipe</h2>
 
             <form className={styles.addForm} onSubmit={addMember}>
               <input
@@ -479,6 +472,12 @@ export default function Velocity({ onBack }) {
               </label>
             </div>
           </section>
+
+          {members.length > 0 && (
+            <button className={styles.csvBtn} onClick={exportExcel}>
+              ↓ Exporter Excel
+            </button>
+          )}
 
           <section className={`${styles.section} ${styles.summary}`}>
             <h2 className={`${styles.sectionTitle} ${styles.stSummary}`}>Résumé du sprint</h2>

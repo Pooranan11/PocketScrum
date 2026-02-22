@@ -91,27 +91,19 @@
 .stTasks   { color: #93c5fd; border-color: #3b82f6; }
 .stSummary { color: #6ee7b7; border-color: #10b981; }
 
-/* ── Section header row ── */
-.sectionHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-/* ── CSV export button ── */
+/* ── Excel export button ── */
 .csvBtn {
   background: rgba(99,102,241,.12);
   color: #818cf8;
   border: 1px solid rgba(99,102,241,.25);
-  border-radius: 6px;
-  font-size: .75rem;
+  border-radius: 8px;
+  font-size: .8rem;
   font-weight: 600;
-  padding: .3rem .7rem;
+  padding: .55rem .75rem;
   cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
+  width: 100%;
   letter-spacing: .03em;
+  text-align: center;
 }
 
 .csvBtn:hover {
