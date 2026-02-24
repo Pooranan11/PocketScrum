@@ -1,10 +1,44 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react'
 import { useWebSocket } from '../useWebSocket.js'
 import styles from './Room.module.css'
 
 const CARDS = ['1', '2', '3', '5', '8', '13', '21', '?', '☕']
+const VELOCITY_STORAGE_KEY = 'pocketscrum_velocity'
 
-export default function Room({ session, onLeave }) {
+function addMemberToVelocityBoard(playerName) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(VELOCITY_STORAGE_KEY) ?? 'null')
+    const members = saved?.members ?? []
+    if (members.some(m => m.name === playerName)) return
+    members.push({ id: crypto.randomUUID(), name: playerName, capacity: 5 })
+    localStorage.setItem(VELOCITY_STORAGE_KEY, JSON.stringify({ ...saved, members }))
+    window.dispatchEvent(new Event('pocketscrum-velocity-updated'))
+  } catch {
+    // Ignore localStorage errors
+  }
+}
+
+function addToVelocityBoard(taskName, round, votes) {
+  const nums = votes.map(v => Number(v.vote)).filter(n => !isNaN(n) && n > 0)
+  const average = nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null
+  try {
+    const saved = JSON.parse(localStorage.getItem(VELOCITY_STORAGE_KEY) ?? 'null')
+    const tasks = saved?.tasks ?? []
+    tasks.push({
+      id: crypto.randomUUID(),
+      title: taskName || `Round ${round}`,
+      estimate: average != null ? parseFloat(average.toFixed(2)) : 1,
+      assigneeId: '',
+      startDate: '',
+      endDate: '',
+    })
+    localStorage.setItem(VELOCITY_STORAGE_KEY, JSON.stringify({ ...saved, tasks }))
+  } catch {
+    // Ignore localStorage errors
+  }
+}
+
+export default function Room({ session, onLeave, onVelocity }) {
   const { room_code, player_id, token, is_scrum_master } = session
 
   const [players, setPlayers] = useState([])
@@ -13,8 +47,28 @@ export default function Room({ session, onLeave }) {
   const [round, setRound] = useState(1)
   const [myVote, setMyVote] = useState(null)
   const [log, setLog] = useState([])
+  const [taskName, setTaskName] = useState('')
+  const [pendingTaskName, setPendingTaskName] = useState('')
 
-  const addLog = (msg) => setLog(l => [`${new Date().toLocaleTimeString()} — ${msg}`, ...l].slice(0, 8))
+  // Refs pour accéder aux valeurs courantes dans onMessage sans créer de dépendances
+  const roundRef = useRef(round)
+  const taskNameRef = useRef(taskName)
+  useEffect(() => { roundRef.current = round }, [round])
+  useEffect(() => { taskNameRef.current = taskName }, [taskName])
+  const [pendingCard, setPendingCard] = useState(null)
+  const [showModal, setShowModal] = useState(false)
+  const [justification, setJustification] = useState('')
+
+  const logRef = useRef(null)
+
+  const addLog = (msg) => setLog(l => [...l, `${new Date().toLocaleTimeString()} — ${msg}`].slice(-20))
+
+  // Scroll automatique vers le bas à chaque nouveau message
+  useLayoutEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight
+    }
+  }, [log])
 
   const onMessage = useCallback((msg) => {
     switch (msg.type) {
@@ -23,12 +77,15 @@ export default function Room({ session, onLeave }) {
         setPlayers(p.players ?? [])
         setGameState(p.state)
         setRound(p.round)
+        setTaskName(p.task_name ?? '')
         setVotes(p.state === 'revealed' ? p.votes ?? [] : null)
+        if (is_scrum_master) p.players?.forEach(pl => addMemberToVelocityBoard(pl.player_name))
         break
       }
       case 'player_join':
         setPlayers(msg.payload.players ?? [])
         addLog(`${msg.payload.player_name} a rejoint la room`)
+        if (is_scrum_master) addMemberToVelocityBoard(msg.payload.player_name)
         break
       case 'player_leave':
         setPlayers(msg.payload.players ?? [])
@@ -44,18 +101,29 @@ export default function Room({ session, onLeave }) {
         )
         addLog(`${msg.payload.player_name} a voté`)
         break
-      case 'votes_reveal':
-        setVotes(msg.payload.votes ?? [])
+      case 'votes_reveal': {
+        const revealedVotes = msg.payload.votes ?? []
+        setVotes(revealedVotes)
         setGameState('revealed')
         addLog('Votes révélés !')
+        if (is_scrum_master) addToVelocityBoard(taskNameRef.current, roundRef.current, revealedVotes)
         break
+      }
       case 'new_round':
         setVotes(null)
         setGameState('voting')
         setMyVote(null)
+        setPendingCard(null)
+        setShowModal(false)
+        setJustification('')
         setRound(msg.payload.round)
+        setTaskName(msg.payload.task_name ?? '')
+        setPendingTaskName('')
         setPlayers(prev => prev.map(p => ({ ...p, has_voted: false })))
         addLog(`Nouveau round #${msg.payload.round}`)
+        break
+      case 'task_name_updated':
+        setTaskName(msg.payload.task_name ?? '')
         break
       case 'error':
         addLog(`⚠️ ${msg.payload.message}`)
@@ -65,10 +133,19 @@ export default function Room({ session, onLeave }) {
 
   const { send } = useWebSocket({ roomCode: room_code, playerId: player_id, token, onMessage, enabled: true })
 
-  function vote(card) {
+  function handleCardClick(card) {
     if (gameState !== 'voting') return
-    setMyVote(card)
-    send({ type: 'vote_cast', payload: { vote: card } })
+    setPendingCard(card)
+    setJustification('')
+    setShowModal(true)
+  }
+
+  function confirmVote(withJustification = true) {
+    setMyVote(pendingCard)
+    send({ type: 'vote_cast', payload: { vote: pendingCard, justification: withJustification ? justification : '' } })
+    setShowModal(false)
+    setPendingCard(null)
+    setJustification('')
   }
 
   function reveal() {
@@ -76,7 +153,7 @@ export default function Room({ session, onLeave }) {
   }
 
   function newRound() {
-    send({ type: 'new_round' })
+    send({ type: 'new_round', payload: { task_name: pendingTaskName.trim() } })
   }
 
   const votedCount = players.filter(p => p.has_voted).length
@@ -100,9 +177,21 @@ export default function Room({ session, onLeave }) {
         </div>
         <div className={styles.headerRight}>
           <span className={styles.round}>Round #{round}</span>
+          {is_scrum_master && onVelocity && (
+            <button className={styles.velocityBtn} onClick={onVelocity}>
+              📈 Board Vélocité
+            </button>
+          )}
           <button className={styles.leaveBtn} onClick={onLeave}>Quitter</button>
         </div>
       </header>
+
+      {/* Task name banner */}
+      {taskName && (
+        <div className={styles.taskBanner}>
+          Tâche : <strong>{taskName}</strong>
+        </div>
+      )}
 
       <main className={styles.main}>
         {/* Panneau joueurs */}
@@ -111,10 +200,17 @@ export default function Room({ session, onLeave }) {
           <ul className={styles.playerList}>
             {players.map(p => (
               <li key={p.player_id} className={styles.playerRow}>
-                <span className={p.player_id === player_id ? styles.me : ''}>
-                  {p.player_name}
-                  {p.player_id === player_id && ' (moi)'}
-                </span>
+                <div className={styles.playerInfo}>
+                  <span className={p.player_id === player_id ? styles.me : ''}>
+                    {p.player_name}
+                    {p.player_id === player_id && ' (moi)'}
+                  </span>
+                  {gameState === 'revealed' && votes?.find(v => v.player_id === p.player_id)?.justification && (
+                    <span className={styles.justification}>
+                      "{votes.find(v => v.player_id === p.player_id).justification}"
+                    </span>
+                  )}
+                </div>
                 <span className={p.has_voted ? styles.voted : styles.waiting}>
                   {gameState === 'revealed'
                     ? (votes?.find(v => v.player_id === p.player_id)?.vote ?? '—')
@@ -144,6 +240,29 @@ export default function Room({ session, onLeave }) {
           {/* Actions Scrum Master */}
           {is_scrum_master && (
             <div className={styles.actions}>
+              <div className={styles.taskInputRow}>
+                <input
+                  className={styles.taskInput}
+                  value={pendingTaskName}
+                  onChange={e => setPendingTaskName(e.target.value)}
+                  placeholder={gameState === 'voting' ? 'Nom de la tâche en cours...' : 'Nom de la tâche suivante...'}
+                  maxLength={60}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && gameState === 'voting') {
+                      send({ type: 'set_task_name', payload: { task_name: pendingTaskName.trim() } })
+                    }
+                  }}
+                />
+                {gameState === 'voting' && (
+                  <button
+                    className={styles.setTaskBtn}
+                    onClick={() => send({ type: 'set_task_name', payload: { task_name: pendingTaskName.trim() } })}
+                    title="Nommer la tâche"
+                  >
+                    ✓
+                  </button>
+                )}
+              </div>
               {gameState === 'voting' && (
                 <button
                   className={styles.revealBtn}
@@ -178,7 +297,7 @@ export default function Room({ session, onLeave }) {
                   myVote === card ? styles.cardSelected : '',
                   gameState === 'revealed' ? styles.cardDisabled : '',
                 ].join(' ')}
-                onClick={() => vote(card)}
+                onClick={() => handleCardClick(card)}
                 disabled={gameState === 'revealed'}
               >
                 {card}
@@ -190,9 +309,32 @@ export default function Room({ session, onLeave }) {
 
       {/* Log d'activité */}
       {log.length > 0 && (
-        <footer className={styles.log}>
+        <footer ref={logRef} className={styles.log}>
           {log.map((entry, i) => <p key={i}>{entry}</p>)}
         </footer>
+      )}
+
+      {/* Modal justification */}
+      {showModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <h3>Ton vote : {pendingCard}</h3>
+            <p className={styles.modalSubtitle}>Justification (optionnelle)</p>
+            <textarea
+              className={styles.modalTextarea}
+              value={justification}
+              onChange={e => setJustification(e.target.value)}
+              maxLength={200}
+              placeholder="Pourquoi cette estimation ?"
+              rows={3}
+              autoFocus
+            />
+            <div className={styles.modalActions}>
+              <button className={styles.modalConfirm} onClick={() => confirmVote(true)}>Confirmer</button>
+              <button className={styles.modalSkip} onClick={() => confirmVote(false)}>Passer</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

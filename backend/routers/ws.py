@@ -31,6 +31,7 @@ from core.security import verify_session_token
 from models.schemas import (
     ROOM_CODE_REGEX,
     WSIncomingMessage,
+    WSNewRoundPayload,
     WSVotePayload,
 )
 from services.room import (
@@ -41,6 +42,7 @@ from services.room import (
     reveal_votes,
     room_channel,
     room_exists,
+    set_task_name,
     start_new_round,
 )
 
@@ -55,8 +57,9 @@ router = APIRouter(tags=["websocket"])
 # Timeout d'inactivité : 30 minutes (en secondes)
 INACTIVITY_TIMEOUT: int = 1_800
 
-# Rate limiting WebSocket : 5 messages par fenêtre de 10 secondes
-WS_RATE_LIMIT_MAX: int = 5
+# Rate limiting WebSocket : 15 messages par fenêtre de 10 secondes
+# (le SM envoie légitimement plus de messages : set_task_name, vote, reveal, new_round)
+WS_RATE_LIMIT_MAX: int = 15
 WS_RATE_LIMIT_WINDOW: float = 10.0
 
 
@@ -125,7 +128,7 @@ async def _handle_vote_cast(
         await websocket.close(code=4002, reason="Carte de vote invalide.")
         return
 
-    success = await cast_vote(redis, room_code, player_id, validated.vote)
+    success = await cast_vote(redis, room_code, player_id, validated.vote, validated.justification)
     if not success:
         # La room est en état "revealed" ou n'existe plus : on ignore silencieusement
         return
@@ -169,14 +172,46 @@ async def _handle_votes_reveal(
     await _publish(redis, room_code, "votes_reveal", {"votes": results})
 
 
+async def _handle_set_task_name(
+    redis: Redis,
+    room_code: str,
+    player_id: str,
+    payload: dict,
+    websocket: WebSocket,
+) -> None:
+    """Met à jour le nom de la tâche en cours (Scrum Master uniquement)."""
+    try:
+        validated = WSNewRoundPayload(**payload)
+    except Exception:
+        validated = WSNewRoundPayload()
+
+    success = await set_task_name(redis, room_code, player_id, validated.task_name)
+
+    if not success:
+        error_msg = json.dumps({
+            "type": "error",
+            "payload": {"message": "Seul le Scrum Master peut nommer la tâche."},
+        })
+        await websocket.send_text(error_msg)
+        return
+
+    await _publish(redis, room_code, "task_name_updated", {"task_name": validated.task_name})
+
+
 async def _handle_new_round(
     redis: Redis,
     room_code: str,
     player_id: str,
+    payload: dict,
     websocket: WebSocket,
 ) -> None:
     """Lance un nouveau round (Scrum Master uniquement)."""
-    new_round = await start_new_round(redis, room_code, player_id)
+    try:
+        validated = WSNewRoundPayload(**payload)
+    except Exception:
+        validated = WSNewRoundPayload()  # task_name vide par défaut
+
+    new_round = await start_new_round(redis, room_code, player_id, validated.task_name)
 
     if new_round is None:
         logger.warning(
@@ -190,7 +225,7 @@ async def _handle_new_round(
         await websocket.send_text(error_msg)
         return
 
-    await _publish(redis, room_code, "new_round", {"round": new_round})
+    await _publish(redis, room_code, "new_round", {"round": new_round, "task_name": validated.task_name})
 
 
 # ---------------------------------------------------------------------------
@@ -352,8 +387,11 @@ async def websocket_endpoint(
             elif msg.type == "votes_reveal":
                 await _handle_votes_reveal(redis, room_code, player_id, websocket)
 
+            elif msg.type == "set_task_name":
+                await _handle_set_task_name(redis, room_code, player_id, msg.payload, websocket)
+
             elif msg.type == "new_round":
-                await _handle_new_round(redis, room_code, player_id, websocket)
+                await _handle_new_round(redis, room_code, player_id, msg.payload, websocket)
 
     # -----------------------------------------------------------------------
     # Exécution concurrente des deux tâches
