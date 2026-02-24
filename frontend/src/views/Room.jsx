@@ -3,12 +3,7 @@ import { useWebSocket } from '../useWebSocket.js'
 import styles from './Room.module.css'
 
 const CARDS = ['1', '2', '3', '5', '8', '13', '21', '?', '☕']
-const VELOCITY_ESTIMATES = [0.25, 0.5, 1, 2, 3, 5, 8]
 const VELOCITY_STORAGE_KEY = 'pocketscrum_velocity'
-
-function nearestEstimate(avg) {
-  return VELOCITY_ESTIMATES.reduce((a, b) => Math.abs(b - avg) < Math.abs(a - avg) ? b : a)
-}
 
 function addMemberToVelocityBoard(playerName) {
   try {
@@ -17,6 +12,7 @@ function addMemberToVelocityBoard(playerName) {
     if (members.some(m => m.name === playerName)) return
     members.push({ id: crypto.randomUUID(), name: playerName, capacity: 5 })
     localStorage.setItem(VELOCITY_STORAGE_KEY, JSON.stringify({ ...saved, members }))
+    window.dispatchEvent(new Event('pocketscrum-velocity-updated'))
   } catch {
     // Ignore localStorage errors
   }
@@ -31,7 +27,7 @@ function addToVelocityBoard(taskName, round, votes) {
     tasks.push({
       id: crypto.randomUUID(),
       title: taskName || `Round ${round}`,
-      estimate: average != null ? nearestEstimate(average) : 1,
+      estimate: average != null ? parseFloat(average.toFixed(2)) : 1,
       assigneeId: '',
       startDate: '',
       endDate: '',

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import styles from './Velocity.module.css'
 
-const ESTIMATES = [0.25, 0.5, 1, 2, 3, 5, 8]
 const STORAGE_KEY = 'pocketscrum_velocity'
 
 const uid = () => crypto.randomUUID()
@@ -106,6 +105,20 @@ export default function Velocity({ onBack, onVisualize }) {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ sprint, members, tasks }))
   }, [sprint, members, tasks])
+
+  // Écoute les membres ajoutés par Room en arrière-plan (évite l'écrasement du localStorage)
+  useEffect(() => {
+    const handleUpdate = () => {
+      const fresh = loadSaved()
+      const freshMembers = fresh?.members ?? []
+      setMembers(prev => {
+        const extra = freshMembers.filter(fm => !prev.some(m => m.name === fm.name))
+        return extra.length > 0 ? [...prev, ...extra] : prev
+      })
+    }
+    window.addEventListener('pocketscrum-velocity-updated', handleUpdate)
+    return () => window.removeEventListener('pocketscrum-velocity-updated', handleUpdate)
+  }, [])
 
   const [mName, setMName] = useState('')
   const [mCap,  setMCap]  = useState('5')
@@ -354,7 +367,7 @@ export default function Velocity({ onBack, onVisualize }) {
 
             <form className={styles.addForm} onSubmit={addMember}>
               <input
-                className={styles.input}
+                className={`${styles.input} ${styles.inputWide}`}
                 value={mName}
                 onChange={e => setMName(e.target.value)}
                 placeholder="Prénom du membre"
@@ -451,15 +464,15 @@ export default function Velocity({ onBack, onVisualize }) {
                 maxLength={60}
                 required
               />
-              <select
-                className={styles.select}
+              <input
+                className={`${styles.input} ${styles.inputSmall}`}
+                type="number"
                 value={tEst}
                 onChange={e => setTEst(e.target.value)}
-              >
-                {ESTIMATES.map(v => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
+                min="0.25"
+                step="0.25"
+                required
+              />
               <select
                 className={styles.select}
                 value={tAssignee}
@@ -509,15 +522,15 @@ export default function Velocity({ onBack, onVisualize }) {
                       <tr key={t.id}>
                         <td>{t.title}</td>
                         <td>
-                          <select
-                            className={styles.inlineSelect}
+                          <input
+                            className={styles.inlineDateInput}
+                            type="number"
                             value={t.estimate}
-                            onChange={e => updateTask(t.id, { estimate: parseFloat(e.target.value) })}
-                          >
-                            {ESTIMATES.map(v => (
-                              <option key={v} value={v}>{v}</option>
-                            ))}
-                          </select>
+                            onChange={e => updateTask(t.id, { estimate: parseFloat(e.target.value) || 0 })}
+                            min="0"
+                            step="0.25"
+                            style={{ width: '60px' }}
+                          />
                         </td>
                         <td>
                           <select
