@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react'
 import { useWebSocket } from '../useWebSocket.js'
 import styles from './Room.module.css'
 
@@ -51,7 +51,16 @@ export default function Room({ session, onLeave, onVelocity }) {
   const [showModal, setShowModal] = useState(false)
   const [justification, setJustification] = useState('')
 
-  const addLog = (msg) => setLog(l => [`${new Date().toLocaleTimeString()} — ${msg}`, ...l].slice(0, 8))
+  const logRef = useRef(null)
+
+  const addLog = (msg) => setLog(l => [...l, `${new Date().toLocaleTimeString()} — ${msg}`].slice(-20))
+
+  // Scroll automatique vers le bas à chaque nouveau message
+  useLayoutEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight
+    }
+  }, [log])
 
   const onMessage = useCallback((msg) => {
     switch (msg.type) {
@@ -287,7 +296,7 @@ export default function Room({ session, onLeave, onVelocity }) {
 
       {/* Log d'activité */}
       {log.length > 0 && (
-        <footer className={styles.log}>
+        <footer ref={logRef} className={styles.log}>
           {log.map((entry, i) => <p key={i}>{entry}</p>)}
         </footer>
       )}
