@@ -43,6 +43,11 @@ def _votes_key(code: str) -> str:
     return f"room:{code}:votes"
 
 
+def _justifications_key(code: str) -> str:
+    """Clé du hash {player_id -> justification} des justifications en cours."""
+    return f"room:{code}:justifications"
+
+
 def room_channel(code: str) -> str:
     """Nom du canal Redis Pub/Sub pour la room (broadcast temps réel)."""
     return f"room:{code}:channel"
@@ -84,6 +89,7 @@ async def create_room(redis: Redis, scrum_master_id: str, scrum_master_name: str
         "scrum_master_id": scrum_master_id,
         "state": "voting",
         "round": "1",
+        "task_name": "",
     }
 
     # Écriture atomique via pipeline — TTL appliqué sur chaque clé
@@ -152,6 +158,7 @@ async def remove_player(redis: Redis, code: str, player_id: str) -> Optional[str
     async with redis.pipeline() as pipe:
         pipe.hdel(_players_key(code), player_id)
         pipe.hdel(_votes_key(code), player_id)
+        pipe.hdel(_justifications_key(code), player_id)
         await pipe.execute()
 
     # Vérification du transfert Scrum Master
@@ -178,7 +185,7 @@ async def remove_player(redis: Redis, code: str, player_id: str) -> Optional[str
     return None
 
 
-async def cast_vote(redis: Redis, code: str, player_id: str, vote: str) -> bool:
+async def cast_vote(redis: Redis, code: str, player_id: str, vote: str, justification: str = "") -> bool:
     """
     Enregistre le vote d'un joueur.
 
@@ -195,6 +202,9 @@ async def cast_vote(redis: Redis, code: str, player_id: str, vote: str) -> bool:
     async with redis.pipeline() as pipe:
         pipe.hset(_votes_key(code), player_id, vote)
         pipe.expire(_votes_key(code), ROOM_TTL)
+        if justification:
+            pipe.hset(_justifications_key(code), player_id, justification)
+            pipe.expire(_justifications_key(code), ROOM_TTL)
         await pipe.execute()
 
     return True
@@ -227,12 +237,14 @@ async def reveal_votes(
     # Construction de la liste des résultats
     players = await get_players(redis, code)
     votes = await get_votes(redis, code)
+    justifications = await redis.hgetall(_justifications_key(code))
 
     results = [
         {
             "player_id": pid,
             "player_name": name,
             "vote": votes.get(pid),  # None si le joueur n'a pas voté
+            "justification": justifications.get(pid, ""),
         }
         for pid, name in players.items()
     ]
@@ -241,7 +253,30 @@ async def reveal_votes(
     return results
 
 
-async def start_new_round(redis: Redis, code: str, player_id: str) -> Optional[int]:
+async def set_task_name(redis: Redis, code: str, player_id: str, task_name: str) -> bool:
+    """
+    Met à jour le nom de la tâche en cours (Scrum Master uniquement).
+
+    Retourne True si réussi, False si non autorisé ou room inexistante.
+    """
+    room = await get_room(redis, code)
+    if not room:
+        return False
+
+    if room.get("scrum_master_id") != player_id:
+        logger.warning(
+            "Tentative de mise à jour du nom de tâche non autorisée dans la room %s par %s.",
+            code, player_id,
+        )
+        return False
+
+    await redis.hset(_room_key(code), "task_name", task_name)
+    await redis.expire(_room_key(code), ROOM_TTL)
+    logger.info("Nom de tâche mis à jour dans la room %s : %r.", code, task_name)
+    return True
+
+
+async def start_new_round(redis: Redis, code: str, player_id: str, task_name: str = "") -> Optional[int]:
     """
     Démarre un nouveau round : réinitialise les votes et repasse en état "voting".
     Scrum Master uniquement.
@@ -262,10 +297,11 @@ async def start_new_round(redis: Redis, code: str, player_id: str) -> Optional[i
     new_round = int(room.get("round", "1")) + 1
 
     async with redis.pipeline() as pipe:
-        # Suppression des votes du round précédent
+        # Suppression des votes et justifications du round précédent
         pipe.delete(_votes_key(code))
-        # Mise à jour de l'état et du numéro de round
-        pipe.hset(_room_key(code), mapping={"state": "voting", "round": str(new_round)})
+        pipe.delete(_justifications_key(code))
+        # Mise à jour de l'état, du numéro de round et du nom de tâche
+        pipe.hset(_room_key(code), mapping={"state": "voting", "round": str(new_round), "task_name": task_name})
         pipe.expire(_room_key(code), ROOM_TTL)
         await pipe.execute()
 
@@ -301,15 +337,18 @@ async def build_room_state(redis: Redis, code: str) -> Optional[dict]:
         "round": int(room.get("round", "1")),
         "players": players,
         "scrum_master_id": room.get("scrum_master_id"),
+        "task_name": room.get("task_name", ""),
     }
 
     # Les votes ne sont visibles que si l'état est "revealed"
     if state == "revealed":
+        justifications = await redis.hgetall(_justifications_key(code))
         result["votes"] = [
             {
                 "player_id": pid,
                 "player_name": players_dict.get(pid, "Inconnu"),
                 "vote": vote,
+                "justification": justifications.get(pid, ""),
             }
             for pid, vote in votes_dict.items()
         ]

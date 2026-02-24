@@ -157,6 +157,135 @@
   transform: none !important;
 }
 
+/* Task banner */
+.taskBanner {
+  background: #1e293b;
+  border-left: 4px solid #6366f1;
+  border-radius: 8px;
+  padding: .6rem 1rem;
+  font-size: .9rem;
+  color: #94a3b8;
+}
+
+/* Player info (name + justification stacked) */
+.playerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+  min-width: 0;
+}
+.justification {
+  font-size: .75rem;
+  color: #64748b;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+/* Task name input row with optional confirm button */
+.taskInputRow {
+  display: flex;
+  gap: .4rem;
+  align-items: center;
+}
+.setTaskBtn {
+  background: #6366f1;
+  color: #fff;
+  border-radius: 6px;
+  padding: .5rem .65rem;
+  font-size: .85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* Task name input in SM actions */
+.taskInput {
+  width: 100%;
+  background: #0f172a;
+  border: 1.5px solid #334155;
+  border-radius: 8px;
+  color: #f1f5f9;
+  padding: .5rem .75rem;
+  font-size: .85rem;
+  box-sizing: border-box;
+}
+.taskInput:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+.taskInput::placeholder { color: #475569; }
+
+/* Modal overlay */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal {
+  background: #1e293b;
+  border-radius: 16px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
+}
+.modal h3 {
+  font-size: 1.3rem;
+  color: #f1f5f9;
+  margin: 0;
+}
+.modalSubtitle {
+  color: #94a3b8;
+  font-size: .9rem;
+  margin: 0;
+}
+.modalTextarea {
+  background: #0f172a;
+  border: 1.5px solid #334155;
+  border-radius: 8px;
+  color: #f1f5f9;
+  padding: .75rem;
+  font-size: .9rem;
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+  width: 100%;
+}
+.modalTextarea:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+.modalTextarea::placeholder { color: #475569; }
+.modalActions {
+  display: flex;
+  gap: .75rem;
+}
+.modalConfirm {
+  flex: 1;
+  background: #6366f1;
+  color: #fff;
+  padding: .7rem;
+  border-radius: 8px;
+  font-weight: 600;
+}
+.modalSkip {
+  flex: 1;
+  background: #334155;
+  color: #94a3b8;
+  padding: .7rem;
+  border-radius: 8px;
+}
+
 /* Log */
 .log {
   background: #1e293b;

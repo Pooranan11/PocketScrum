@@ -20,6 +20,9 @@ from pydantic import BaseModel, Field, field_validator
 # espaces, tirets et underscores uniquement — longueur 1-30
 PLAYER_NAME_REGEX = re.compile(r"^[a-zA-ZÀ-ÿ0-9 _\-]{1,30}$")
 
+# Regex du nom de tâche : lettres, chiffres, espaces et ponctuation courante — longueur 1-60
+TASK_NAME_REGEX = re.compile(r"^[a-zA-ZÀ-ÿ0-9 _\-\(\)\[\]#\.,!?:]{1,60}$")
+
 # Regex du code room : exactement 4 lettres majuscules
 ROOM_CODE_REGEX = re.compile(r"^[A-Z]{4}$")
 
@@ -27,7 +30,7 @@ ROOM_CODE_REGEX = re.compile(r"^[A-Z]{4}$")
 FIBONACCI_CARDS: frozenset[str] = frozenset({"1", "2", "3", "5", "8", "13", "21", "?", "☕"})
 
 # Types de messages WebSocket acceptés (whitelist stricte)
-WS_MESSAGE_TYPES: frozenset[str] = frozenset({"vote_cast", "votes_reveal", "new_round", "ping"})
+WS_MESSAGE_TYPES: frozenset[str] = frozenset({"vote_cast", "votes_reveal", "new_round", "set_task_name", "ping"})
 
 
 # ---------------------------------------------------------------------------
@@ -129,6 +132,7 @@ class WSIncomingMessage(BaseModel):
 class WSVotePayload(BaseModel):
     """Payload attendu pour l'événement vote_cast."""
     vote: str = Field(..., description="Carte Fibonacci choisie")
+    justification: str = Field(default="", max_length=200)
 
     @field_validator("vote")
     @classmethod
@@ -138,6 +142,24 @@ class WSVotePayload(BaseModel):
                 f"Vote invalide : '{v}'. "
                 f"Cartes autorisées : {sorted(FIBONACCI_CARDS)}"
             )
+        return v
+
+    @field_validator("justification")
+    @classmethod
+    def clean_justification(cls, v: str) -> str:
+        return v.strip()[:200]
+
+
+class WSNewRoundPayload(BaseModel):
+    """Payload attendu pour l'événement new_round."""
+    task_name: str = Field(default="", max_length=60)
+
+    @field_validator("task_name")
+    @classmethod
+    def validate_task_name(cls, v: str) -> str:
+        v = v.strip()
+        if v and not TASK_NAME_REGEX.match(v):
+            raise ValueError("Nom de tâche invalide.")
         return v
 
 
@@ -157,6 +179,7 @@ class VoteResult(BaseModel):
     player_id: str
     player_name: str
     vote: Optional[str] = None
+    justification: str = ""
 
 
 class RoomState(BaseModel):
@@ -167,3 +190,4 @@ class RoomState(BaseModel):
     players: list[PlayerInfo]
     votes: Optional[list[VoteResult]] = None  # Non-null uniquement si state == "revealed"
     scrum_master_id: str
+    task_name: str = ""
