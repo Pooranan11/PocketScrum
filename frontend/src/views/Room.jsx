@@ -10,6 +10,18 @@ function nearestEstimate(avg) {
   return VELOCITY_ESTIMATES.reduce((a, b) => Math.abs(b - avg) < Math.abs(a - avg) ? b : a)
 }
 
+function addMemberToVelocityBoard(playerName) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(VELOCITY_STORAGE_KEY) ?? 'null')
+    const members = saved?.members ?? []
+    if (members.some(m => m.name === playerName)) return
+    members.push({ id: crypto.randomUUID(), name: playerName, capacity: 5 })
+    localStorage.setItem(VELOCITY_STORAGE_KEY, JSON.stringify({ ...saved, members }))
+  } catch {
+    // Ignore localStorage errors
+  }
+}
+
 function addToVelocityBoard(taskName, round, votes) {
   const nums = votes.map(v => Number(v.vote)).filter(n => !isNaN(n) && n > 0)
   const average = nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null
@@ -71,11 +83,13 @@ export default function Room({ session, onLeave, onVelocity }) {
         setRound(p.round)
         setTaskName(p.task_name ?? '')
         setVotes(p.state === 'revealed' ? p.votes ?? [] : null)
+        if (is_scrum_master) p.players?.forEach(pl => addMemberToVelocityBoard(pl.player_name))
         break
       }
       case 'player_join':
         setPlayers(msg.payload.players ?? [])
         addLog(`${msg.payload.player_name} a rejoint la room`)
+        if (is_scrum_master) addMemberToVelocityBoard(msg.payload.player_name)
         break
       case 'player_leave':
         setPlayers(msg.payload.players ?? [])
