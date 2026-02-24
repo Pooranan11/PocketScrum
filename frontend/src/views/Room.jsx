@@ -3,28 +3,34 @@ import { useWebSocket } from '../useWebSocket.js'
 import styles from './Room.module.css'
 
 const CARDS = ['1', '2', '3', '5', '8', '13', '21', '?', '☕']
+const VELOCITY_ESTIMATES = [0.25, 0.5, 1, 2, 3, 5, 8]
+const VELOCITY_STORAGE_KEY = 'pocketscrum_velocity'
 
-function savePokerResult(taskName, round, roomCode, votes) {
+function nearestEstimate(avg) {
+  return VELOCITY_ESTIMATES.reduce((a, b) => Math.abs(b - avg) < Math.abs(a - avg) ? b : a)
+}
+
+function addToVelocityBoard(taskName, round, votes) {
   const nums = votes.map(v => Number(v.vote)).filter(n => !isNaN(n) && n > 0)
   const average = nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null
   try {
-    const results = JSON.parse(localStorage.getItem('pocketscrum_poker_results') ?? '[]')
-    results.push({
+    const saved = JSON.parse(localStorage.getItem(VELOCITY_STORAGE_KEY) ?? 'null')
+    const tasks = saved?.tasks ?? []
+    tasks.push({
       id: crypto.randomUUID(),
-      taskName: taskName || `Round ${round}`,
-      round,
-      roomCode,
-      timestamp: new Date().toISOString(),
-      votes: votes.map(v => ({ player_name: v.player_name, vote: v.vote, justification: v.justification ?? '' })),
-      average,
+      title: taskName || `Round ${round}`,
+      estimate: average != null ? nearestEstimate(average) : 1,
+      assigneeId: '',
+      startDate: '',
+      endDate: '',
     })
-    localStorage.setItem('pocketscrum_poker_results', JSON.stringify(results))
+    localStorage.setItem(VELOCITY_STORAGE_KEY, JSON.stringify({ ...saved, tasks }))
   } catch {
-    // Ignore localStorage errors (private browsing, quota exceeded, etc.)
+    // Ignore localStorage errors
   }
 }
 
-export default function Room({ session, onLeave }) {
+export default function Room({ session, onLeave, onVelocity }) {
   const { room_code, player_id, token, is_scrum_master } = session
 
   const [players, setPlayers] = useState([])
@@ -81,7 +87,7 @@ export default function Room({ session, onLeave }) {
         setVotes(revealedVotes)
         setGameState('revealed')
         addLog('Votes révélés !')
-        savePokerResult(taskNameRef.current, roundRef.current, room_code, revealedVotes)
+        if (is_scrum_master) addToVelocityBoard(taskNameRef.current, roundRef.current, revealedVotes)
         break
       }
       case 'new_round':
@@ -149,6 +155,11 @@ export default function Room({ session, onLeave }) {
         </div>
         <div className={styles.headerRight}>
           <span className={styles.round}>Round #{round}</span>
+          {is_scrum_master && onVelocity && (
+            <button className={styles.velocityBtn} onClick={onVelocity}>
+              📈 Board Vélocité
+            </button>
+          )}
           <button className={styles.leaveBtn} onClick={onLeave}>Quitter</button>
         </div>
       </header>

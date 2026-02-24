@@ -3,7 +3,6 @@ import styles from './Velocity.module.css'
 
 const ESTIMATES = [0.25, 0.5, 1, 2, 3, 5, 8]
 const STORAGE_KEY = 'pocketscrum_velocity'
-const POKER_RESULTS_KEY = 'pocketscrum_poker_results'
 
 const uid = () => crypto.randomUUID()
 
@@ -27,14 +26,6 @@ const loadSaved = () => {
   catch { return null }
 }
 
-function nearestEstimate(avg) {
-  return ESTIMATES.reduce((a, b) => Math.abs(b - avg) < Math.abs(a - avg) ? b : a)
-}
-
-function loadPokerResults() {
-  try { return JSON.parse(localStorage.getItem(POKER_RESULTS_KEY) ?? '[]') }
-  catch { return [] }
-}
 
 /**
  * Parmi les membres disponibles, retourne celui avec le plus de capacité libre
@@ -116,10 +107,6 @@ export default function Velocity({ onBack, onVisualize }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ sprint, members, tasks }))
   }, [sprint, members, tasks])
 
-  const [showPokerImport, setShowPokerImport] = useState(false)
-  const [pokerResults, setPokerResults] = useState([])
-  const [selectedPokerIds, setSelectedPokerIds] = useState(new Set())
-
   const [mName, setMName] = useState('')
   const [mCap,  setMCap]  = useState('5')
 
@@ -161,36 +148,6 @@ export default function Velocity({ onBack, onVisualize }) {
     setTEndDate('')
   }
 
-  function openPokerImport() {
-    setPokerResults(loadPokerResults())
-    setSelectedPokerIds(new Set())
-    setShowPokerImport(true)
-  }
-
-  function togglePokerSelection(id) {
-    setSelectedPokerIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  function importSelectedPokerTasks() {
-    const toImport = pokerResults.filter(r => selectedPokerIds.has(r.id))
-    setTasks(ts => [
-      ...ts,
-      ...toImport.map(r => ({
-        id: uid(),
-        title: r.taskName,
-        estimate: r.average != null ? nearestEstimate(r.average) : 1,
-        assigneeId: '',
-        startDate: '',
-        endDate: '',
-      })),
-    ])
-    setShowPokerImport(false)
-  }
 
   function removeTask(id) {
     setTasks(ts => ts.filter(t => t.id !== id))
@@ -369,9 +326,6 @@ export default function Velocity({ onBack, onVisualize }) {
           ↑ Importer Excel
           <input type="file" accept=".xlsx" onChange={importExcel} style={{ display: 'none' }} />
         </label>
-        <button className={styles.pokerImportBtn} onClick={openPokerImport}>
-          🃏 Importer depuis Planning Poker
-        </button>
         {(members.length > 0 || tasks.length > 0 || sprint.name) && (
           <button
             className={styles.clearBtn}
@@ -732,51 +686,6 @@ export default function Velocity({ onBack, onVisualize }) {
         </div>
       </div>
 
-      {/* Modal import Planning Poker */}
-      {showPokerImport && (
-        <div className={styles.pokerModalOverlay}>
-          <div className={styles.pokerModal}>
-            <h2 className={styles.pokerModalTitle}>Importer depuis Planning Poker</h2>
-            {pokerResults.length === 0 ? (
-              <p className={styles.pokerModalEmpty}>Aucun résultat de Planning Poker trouvé.</p>
-            ) : (
-              <>
-                <p className={styles.pokerModalHint}>Sélectionnez les rounds à importer comme tâches.</p>
-                <ul className={styles.pokerResultList}>
-                  {pokerResults.map(r => (
-                    <li
-                      key={r.id}
-                      className={`${styles.pokerResultItem} ${selectedPokerIds.has(r.id) ? styles.pokerResultSelected : ''}`}
-                      onClick={() => togglePokerSelection(r.id)}
-                    >
-                      <div className={styles.pokerResultName}>{r.taskName}</div>
-                      <div className={styles.pokerResultMeta}>
-                        {r.average != null
-                          ? `Moy. ${r.average.toFixed(1)} → ${nearestEstimate(r.average)}j`
-                          : 'Pas de moyenne'}
-                        {' · '}
-                        {new Date(r.timestamp).toLocaleDateString('fr-FR')}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-            <div className={styles.pokerModalActions}>
-              <button
-                className={styles.pokerModalConfirm}
-                onClick={importSelectedPokerTasks}
-                disabled={selectedPokerIds.size === 0}
-              >
-                Importer ({selectedPokerIds.size})
-              </button>
-              <button className={styles.pokerModalCancel} onClick={() => setShowPokerImport(false)}>
-                Annuler
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

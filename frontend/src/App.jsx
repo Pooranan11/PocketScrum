@@ -23,23 +23,41 @@ export default function App() {
     setView('visualisation')
   }, [])
 
-  const handleJoin = useCallback((s) => setSession(s), [])
+  const handleJoin    = useCallback((s) => { setSession(s); setView('game') }, [])
+  const handleLeave   = useCallback(() => { setSession(null); setView('dashboard') }, [])
+  const handleBack    = useCallback(() => { setSession(null); setView('dashboard') }, [])
 
-  const handleLeave = useCallback(() => setSession(null), [])
+  // SM : aller sur Vélocité sans couper le WebSocket (Room reste monté)
+  const handleVelocityFromRoom = useCallback(() => setView('velocity'), [])
 
-  const handleBack = useCallback(() => {
-    setSession(null)
-    setView('dashboard')
-  }, [])
+  // Retour depuis Vélocité : revenir à la room si session active, sinon dashboard
+  const handleBackFromVelocity = useCallback(() => {
+    if (session) setView('game')
+    else handleBack()
+  }, [session, handleBack])
 
-  if (view === 'dashboard') {
+  // ── Cas avec session active : Room TOUJOURS monté (WS reste connecté) ──
+  // On affiche/masque via CSS selon la vue courante.
+  if (session) {
     return (
-      <div className="app">
-        <Dashboard onSelectTool={handleSelectTool} />
-      </div>
+      <>
+        <div className="app" style={view !== 'game' ? { display: 'none' } : {}}>
+          <Room
+            session={session}
+            onLeave={handleLeave}
+            onVelocity={session.is_scrum_master ? handleVelocityFromRoom : undefined}
+          />
+        </div>
+        {view === 'velocity' && (
+          <div className="app" style={{ justifyContent: 'flex-start' }}>
+            <Velocity onBack={handleBackFromVelocity} onVisualize={handleVisualize} />
+          </div>
+        )}
+      </>
     )
   }
 
+  // ── Cas sans session : navigation normale ──
   if (view === 'velocity') {
     return (
       <div className="app" style={{ justifyContent: 'flex-start' }}>
@@ -61,12 +79,17 @@ export default function App() {
     )
   }
 
+  if (view === 'game') {
+    return (
+      <div className="app">
+        <Home onJoin={handleJoin} onBack={handleBack} />
+      </div>
+    )
+  }
+
   return (
     <div className="app">
-      {session
-        ? <Room session={session} onLeave={handleLeave} />
-        : <Home onJoin={handleJoin} onBack={handleBack} />
-      }
+      <Dashboard onSelectTool={handleSelectTool} />
     </div>
   )
 }
