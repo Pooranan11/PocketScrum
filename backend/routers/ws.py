@@ -57,8 +57,9 @@ router = APIRouter(tags=["websocket"])
 # Timeout d'inactivité : 30 minutes (en secondes)
 INACTIVITY_TIMEOUT: int = 1_800
 
-# Rate limiting WebSocket : 5 messages par fenêtre de 10 secondes
-WS_RATE_LIMIT_MAX: int = 5
+# Rate limiting WebSocket : 15 messages par fenêtre de 10 secondes
+# (le SM envoie légitimement plus de messages : set_task_name, vote, reveal, new_round)
+WS_RATE_LIMIT_MAX: int = 15
 WS_RATE_LIMIT_WINDOW: float = 10.0
 
 
