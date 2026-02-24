@@ -130,6 +130,10 @@ export default function Velocity({ onBack, onVisualize }) {
     setTasks(ts => ts.map(t => t.assigneeId === id ? { ...t, assigneeId: '' } : t))
   }
 
+  function updateMember(id, changes) {
+    setMembers(ms => ms.map(m => m.id === id ? { ...m, ...changes } : m))
+  }
+
   function addTask(e) {
     e.preventDefault()
     if (!tTitle.trim()) return
@@ -393,7 +397,17 @@ export default function Velocity({ onBack, onVisualize }) {
                       return (
                         <tr key={m.id}>
                           <td className={styles.memberName}>{m.name}</td>
-                          <td>{fmtJ(m.capacity)}</td>
+                          <td>
+                            <input
+                              className={styles.inlineDateInput}
+                              type="number"
+                              value={m.capacity}
+                              min="0.25"
+                              step="0.25"
+                              onChange={e => updateMember(m.id, { capacity: parseFloat(e.target.value) || 0 })}
+                              style={{ width: '70px' }}
+                            />
+                          </td>
                           <td>{fmtJ(assigned)}</td>
                           <td>
                             <div className={styles.barRow}>
