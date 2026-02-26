@@ -63,6 +63,7 @@ def _validate_room_code(v: str) -> str:
 class CreateRoomRequest(BaseModel):
     """Corps de la requête POST /api/rooms."""
     player_name: str = Field(..., min_length=1, max_length=30, description="Nom du Scrum Master")
+    role: Literal["dev", "qa"] = Field(..., description="Rôle du Scrum Master : dev ou qa")
 
     @field_validator("player_name")
     @classmethod
@@ -74,6 +75,7 @@ class JoinRoomRequest(BaseModel):
     """Corps de la requête POST /api/rooms/{code}/join."""
     room_code: str = Field(..., min_length=4, max_length=4, description="Code de la room (4 lettres)")
     player_name: str = Field(..., min_length=1, max_length=30, description="Nom du joueur")
+    role: Literal["dev", "qa"] = Field(..., description="Rôle du joueur : dev ou qa")
 
     @field_validator("room_code")
     @classmethod
@@ -96,6 +98,7 @@ class CreateRoomResponse(BaseModel):
     player_id: str
     token: str
     is_scrum_master: bool = True
+    role: Literal["dev", "qa"]
 
 
 class JoinRoomResponse(BaseModel):
@@ -104,6 +107,7 @@ class JoinRoomResponse(BaseModel):
     player_id: str
     token: str
     is_scrum_master: bool = False
+    role: Literal["dev", "qa"]
 
 
 # ---------------------------------------------------------------------------
@@ -172,6 +176,7 @@ class PlayerInfo(BaseModel):
     player_id: str
     player_name: str
     has_voted: bool = False
+    role: Literal["dev", "qa"] = "dev"
 
 
 class VoteResult(BaseModel):
@@ -180,6 +185,7 @@ class VoteResult(BaseModel):
     player_name: str
     vote: Optional[str] = None
     justification: str = ""
+    role: Literal["dev", "qa"] = "dev"
 
 
 class RoomState(BaseModel):

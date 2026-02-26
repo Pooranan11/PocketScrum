@@ -48,6 +48,11 @@ def _justifications_key(code: str) -> str:
     return f"room:{code}:justifications"
 
 
+def _roles_key(code: str) -> str:
+    """Clé du hash {player_id -> role} des rôles des joueurs (dev|qa)."""
+    return f"room:{code}:roles"
+
+
 def room_channel(code: str) -> str:
     """Nom du canal Redis Pub/Sub pour la room (broadcast temps réel)."""
     return f"room:{code}:channel"
@@ -66,7 +71,7 @@ def _generate_code() -> str:
 # Opérations sur les rooms
 # ---------------------------------------------------------------------------
 
-async def create_room(redis: Redis, scrum_master_id: str, scrum_master_name: str) -> str:
+async def create_room(redis: Redis, scrum_master_id: str, scrum_master_name: str, scrum_master_role: str = "dev") -> str:
     """
     Crée une nouvelle room avec un code unique de 4 lettres.
 
@@ -98,6 +103,8 @@ async def create_room(redis: Redis, scrum_master_id: str, scrum_master_name: str
         pipe.expire(_room_key(code), ROOM_TTL)
         pipe.hset(_players_key(code), scrum_master_id, scrum_master_name)
         pipe.expire(_players_key(code), ROOM_TTL)
+        pipe.hset(_roles_key(code), scrum_master_id, scrum_master_role)
+        pipe.expire(_roles_key(code), ROOM_TTL)
         await pipe.execute()
 
     logger.info("Room %s créée par le Scrum Master %s.", code, scrum_master_id)
@@ -127,7 +134,7 @@ async def get_votes(redis: Redis, code: str) -> dict[str, str]:
     return await redis.hgetall(_votes_key(code))
 
 
-async def join_room(redis: Redis, code: str, player_id: str, player_name: str) -> bool:
+async def join_room(redis: Redis, code: str, player_id: str, player_name: str, role: str = "dev") -> bool:
     """
     Ajoute un joueur à une room existante.
 
@@ -141,6 +148,8 @@ async def join_room(redis: Redis, code: str, player_id: str, player_name: str) -
     async with redis.pipeline() as pipe:
         pipe.hset(_players_key(code), player_id, player_name)
         pipe.expire(_players_key(code), ROOM_TTL)
+        pipe.hset(_roles_key(code), player_id, role)
+        pipe.expire(_roles_key(code), ROOM_TTL)
         pipe.expire(_room_key(code), ROOM_TTL)
         await pipe.execute()
 
@@ -159,6 +168,7 @@ async def remove_player(redis: Redis, code: str, player_id: str) -> Optional[str
         pipe.hdel(_players_key(code), player_id)
         pipe.hdel(_votes_key(code), player_id)
         pipe.hdel(_justifications_key(code), player_id)
+        pipe.hdel(_roles_key(code), player_id)
         await pipe.execute()
 
     # Vérification du transfert Scrum Master
@@ -238,6 +248,7 @@ async def reveal_votes(
     players = await get_players(redis, code)
     votes = await get_votes(redis, code)
     justifications = await redis.hgetall(_justifications_key(code))
+    roles = await redis.hgetall(_roles_key(code))
 
     results = [
         {
@@ -245,6 +256,7 @@ async def reveal_votes(
             "player_name": name,
             "vote": votes.get(pid),  # None si le joueur n'a pas voté
             "justification": justifications.get(pid, ""),
+            "role": roles.get(pid, "dev"),
         }
         for pid, name in players.items()
     ]
@@ -320,6 +332,7 @@ async def build_room_state(redis: Redis, code: str) -> Optional[dict]:
 
     players_dict = await get_players(redis, code)
     votes_dict = await get_votes(redis, code)
+    roles_dict = await redis.hgetall(_roles_key(code))
     state = room.get("state", "voting")
 
     players = [
@@ -327,6 +340,7 @@ async def build_room_state(redis: Redis, code: str) -> Optional[dict]:
             "player_id": pid,
             "player_name": name,
             "has_voted": pid in votes_dict,
+            "role": roles_dict.get(pid, "dev"),
         }
         for pid, name in players_dict.items()
     ]
@@ -349,6 +363,7 @@ async def build_room_state(redis: Redis, code: str) -> Optional[dict]:
                 "player_name": players_dict.get(pid, "Inconnu"),
                 "vote": vote,
                 "justification": justifications.get(pid, ""),
+                "role": roles_dict.get(pid, "dev"),
             }
             for pid, vote in votes_dict.items()
         ]

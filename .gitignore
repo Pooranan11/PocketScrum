@@ -18,5 +18,9 @@ frontend/dist/
 # Redis
 backend/dump.rdb
 
+# Coverage
+backend/.coverage
+backend/htmlcov/
+
 # OS
 .DS_Store

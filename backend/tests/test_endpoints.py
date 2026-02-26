@@ -25,9 +25,9 @@ def reset_rate_limiter():
 # Helper
 # ---------------------------------------------------------------------------
 
-def _create_room(client: TestClient, name: str = "Alice") -> dict:
+def _create_room(client: TestClient, name: str = "Alice", role: str = "dev") -> dict:
     """Crée une room et retourne le JSON de réponse."""
-    resp = client.post("/api/rooms", json={"player_name": name})
+    resp = client.post("/api/rooms", json={"player_name": name, "role": role})
     assert resp.status_code == 201
     return resp.json()
 
@@ -46,14 +46,15 @@ def _recv_until(ws, expected_type: str, max_msgs: int = 5) -> dict | None:
 # ---------------------------------------------------------------------------
 
 def test_create_room_returns_201_and_structure(test_client: TestClient):
-    """POST /api/rooms retourne 201 avec les 4 champs attendus."""
-    resp = test_client.post("/api/rooms", json={"player_name": "Alice"})
+    """POST /api/rooms retourne 201 avec les 5 champs attendus."""
+    resp = test_client.post("/api/rooms", json={"player_name": "Alice", "role": "dev"})
     assert resp.status_code == 201
     data = resp.json()
-    assert set(data.keys()) == {"room_code", "player_id", "token", "is_scrum_master"}
+    assert set(data.keys()) == {"room_code", "player_id", "token", "is_scrum_master", "role"}
     assert len(data["room_code"]) == 4
     assert data["room_code"].isupper()
     assert data["is_scrum_master"] is True
+    assert data["role"] == "dev"
     assert data["token"]
     assert data["player_id"]
 
@@ -73,7 +74,7 @@ def test_create_room_generates_unique_codes(test_client: TestClient):
 ])
 def test_create_room_invalid_name_returns_422(test_client: TestClient, bad_name: str):
     """POST /api/rooms rejette les noms invalides avec 422."""
-    resp = test_client.post("/api/rooms", json={"player_name": bad_name})
+    resp = test_client.post("/api/rooms", json={"player_name": bad_name, "role": "dev"})
     assert resp.status_code == 422
 
 
@@ -92,12 +93,13 @@ def test_join_room_returns_200_and_structure(test_client: TestClient):
     code = _create_room(test_client)["room_code"]
     resp = test_client.post(
         f"/api/rooms/{code}/join",
-        json={"room_code": code, "player_name": "Bob"},
+        json={"room_code": code, "player_name": "Bob", "role": "qa"},
     )
     assert resp.status_code == 200
     data = resp.json()
     assert data["room_code"] == code
     assert data["is_scrum_master"] is False
+    assert data["role"] == "qa"
     assert data["player_id"]
     assert data["token"]
 
@@ -106,7 +108,7 @@ def test_join_room_not_found_returns_404(test_client: TestClient):
     """POST /api/rooms/{code}/join retourne 404 si la room n'existe pas."""
     resp = test_client.post(
         "/api/rooms/ZZZZ/join",
-        json={"room_code": "ZZZZ", "player_name": "Bob"},
+        json={"room_code": "ZZZZ", "player_name": "Bob", "role": "dev"},
     )
     assert resp.status_code == 404
 
@@ -126,7 +128,7 @@ def test_join_room_code_mismatch_returns_422(test_client: TestClient):
     other = "ZZZZ" if code != "ZZZZ" else "AAAA"
     resp = test_client.post(
         f"/api/rooms/{code}/join",
-        json={"room_code": other, "player_name": "Bob"},
+        json={"room_code": other, "player_name": "Bob", "role": "dev"},
     )
     assert resp.status_code == 422
 
@@ -136,7 +138,7 @@ def test_join_room_invalid_player_name_returns_422(test_client: TestClient):
     code = _create_room(test_client)["room_code"]
     resp = test_client.post(
         f"/api/rooms/{code}/join",
-        json={"room_code": code, "player_name": "'; DROP TABLE--"},
+        json={"room_code": code, "player_name": "'; DROP TABLE--", "role": "dev"},
     )
     assert resp.status_code == 422
 
@@ -146,7 +148,7 @@ def test_join_room_token_is_valid_for_ws(test_client: TestClient):
     code = _create_room(test_client)["room_code"]
     join = test_client.post(
         f"/api/rooms/{code}/join",
-        json={"room_code": code, "player_name": "Bob"},
+        json={"room_code": code, "player_name": "Bob", "role": "qa"},
     ).json()
 
     with test_client.websocket_connect(
@@ -262,7 +264,7 @@ def test_ws_non_sm_reveal_receives_error(test_client: TestClient):
     code = _create_room(test_client)["room_code"]
     join = test_client.post(
         f"/api/rooms/{code}/join",
-        json={"room_code": code, "player_name": "Bob"},
+        json={"room_code": code, "player_name": "Bob", "role": "qa"},
     ).json()
 
     with test_client.websocket_connect(
