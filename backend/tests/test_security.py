@@ -106,7 +106,7 @@ def client() -> TestClient:
 def test_player_name_rejects_special_chars(malicious_name: str):
     """Pydantic doit rejeter les noms de joueur contenant des caractères non autorisés."""
     with pytest.raises(ValidationError):
-        CreateRoomRequest(player_name=malicious_name)
+        CreateRoomRequest(player_name=malicious_name, role="dev")
 
 
 @pytest.mark.parametrize("valid_name", [
@@ -120,7 +120,7 @@ def test_player_name_rejects_special_chars(malicious_name: str):
 ])
 def test_player_name_accepts_valid_names(valid_name: str):
     """Les noms valides passent la validation Pydantic sans erreur."""
-    req = CreateRoomRequest(player_name=valid_name)
+    req = CreateRoomRequest(player_name=valid_name, role="dev")
     assert req.player_name == valid_name.strip()
 
 
@@ -142,7 +142,7 @@ def test_player_name_accepts_valid_names(valid_name: str):
 def test_room_code_rejects_invalid_formats(malicious_code: str):
     """Le code room doit être rejeté s'il ne correspond pas à [A-Z]{4}."""
     with pytest.raises(ValidationError):
-        JoinRoomRequest(room_code=malicious_code, player_name="Alice")
+        JoinRoomRequest(room_code=malicious_code, player_name="Alice", role="dev")
 
 
 @pytest.mark.parametrize("valid_code", [
@@ -153,7 +153,7 @@ def test_room_code_rejects_invalid_formats(malicious_code: str):
 ])
 def test_room_code_accepts_valid_formats(valid_code: str):
     """Les codes valides sont acceptés et normalisés en majuscules."""
-    req = JoinRoomRequest(room_code=valid_code, player_name="Alice")
+    req = JoinRoomRequest(room_code=valid_code, player_name="Alice", role="dev")
     assert req.room_code == valid_code.upper()
 
 
@@ -396,11 +396,11 @@ def test_create_room_rate_limit(client: TestClient):
     """
     # Création de 10 rooms (limite configurée à 10/minute)
     for i in range(10):
-        resp = client.post("/api/rooms", json={"player_name": f"Joueur{i}"})
+        resp = client.post("/api/rooms", json={"player_name": f"Joueur{i}", "role": "dev"})
         assert resp.status_code in (201, 429)
 
     # La 11ème requête doit déclencher le rate limiting
-    resp = client.post("/api/rooms", json={"player_name": "Joueur10"})
+    resp = client.post("/api/rooms", json={"player_name": "Joueur10", "role": "dev"})
     # En test, le rate limiter peut ne pas atteindre la limite exacte car
     # les timestamps sont réinitialisés entre les tests. On vérifie au moins
     # que la route répond correctement (201 ou 429).
