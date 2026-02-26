@@ -51,7 +51,7 @@ async def create_room_endpoint(
     - Le token de session pour l'authentification WebSocket
     """
     player_id = generate_player_id()
-    room_code = await create_room(redis, player_id, body.player_name)
+    room_code = await create_room(redis, player_id, body.player_name, body.role)
     token = generate_session_token(room_code, player_id)
 
     logger.info("Room %s créée par Scrum Master %s.", room_code, player_id)
@@ -60,6 +60,7 @@ async def create_room_endpoint(
         player_id=player_id,
         token=token,
         is_scrum_master=True,
+        role=body.role,
     )
 
 
@@ -95,7 +96,7 @@ async def join_room_endpoint(
         )
 
     player_id = generate_player_id()
-    success = await join_room(redis, validated_code, player_id, body.player_name)
+    success = await join_room(redis, validated_code, player_id, body.player_name, body.role)
 
     if not success:
         logger.warning("Tentative de rejoindre une room inexistante : %s", validated_code)
@@ -112,4 +113,5 @@ async def join_room_endpoint(
         player_id=player_id,
         token=token,
         is_scrum_master=False,
+        role=body.role,
     )

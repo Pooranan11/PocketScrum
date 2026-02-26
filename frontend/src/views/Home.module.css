@@ -68,6 +68,31 @@
 .field { display: flex; flex-direction: column; gap: .4rem; }
 .field label { font-size: .875rem; color: #94a3b8; }
 
+.roleSelector {
+  display: flex;
+  gap: .5rem;
+}
+
+.roleBtn {
+  flex: 1;
+  padding: .55rem;
+  border-radius: 8px;
+  font-size: .9rem;
+  background: rgba(10,14,26,.5);
+  color: #94a3b8;
+  border: 1px solid rgba(255,255,255,0.06);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+
+.roleBtn:hover { color: #e2e8f0; }
+
+.roleBtnActive {
+  background: #6366f1;
+  color: #fff;
+  border-color: #6366f1;
+}
+
 .submit {
   background: #6366f1;
   color: #fff;

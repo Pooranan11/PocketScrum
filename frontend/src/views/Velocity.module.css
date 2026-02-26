@@ -128,6 +128,7 @@
 /* Couleur par section */
 .stSprint  { color: #c4b5fd; border-color: #8b5cf6; }
 .stMembers { color: #a5b4fc; border-color: #6366f1; }
+.stQa      { color: #f9a8d4; border-color: #ec4899; }
 .stTasks   { color: #93c5fd; border-color: #3b82f6; }
 .stSummary { color: #6ee7b7; border-color: #10b981; }
 

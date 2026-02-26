@@ -6,6 +6,7 @@ export default function Home({ onJoin, onBack }) {
   const [tab, setTab] = useState('create') // 'create' | 'join'
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
+  const [role, setRole] = useState('dev')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -14,7 +15,7 @@ export default function Home({ onJoin, onBack }) {
     setError('')
     setLoading(true)
     try {
-      const session = await createRoom(name.trim())
+      const session = await createRoom(name.trim(), role)
       onJoin(session)
     } catch (err) {
       setError(err.message)
@@ -28,7 +29,7 @@ export default function Home({ onJoin, onBack }) {
     setError('')
     setLoading(true)
     try {
-      const session = await joinRoom(code.trim().toUpperCase(), name.trim())
+      const session = await joinRoom(code.trim().toUpperCase(), name.trim(), role)
       onJoin(session)
     } catch (err) {
       setError(err.message)
@@ -87,6 +88,26 @@ export default function Home({ onJoin, onBack }) {
             required
             autoFocus={tab === 'create'}
           />
+        </div>
+
+        <div className={styles.field}>
+          <label>Ton rôle</label>
+          <div className={styles.roleSelector}>
+            <button
+              type="button"
+              className={`${styles.roleBtn} ${role === 'dev' ? styles.roleBtnActive : ''}`}
+              onClick={() => setRole('dev')}
+            >
+              Dev
+            </button>
+            <button
+              type="button"
+              className={`${styles.roleBtn} ${role === 'qa' ? styles.roleBtnActive : ''}`}
+              onClick={() => setRole('qa')}
+            >
+              QA / Fonc
+            </button>
+          </div>
         </div>
 
         {error && <p className="error">{error}</p>}

@@ -5,13 +5,15 @@ import styles from './Room.module.css'
 const CARDS = ['1', '2', '3', '5', '8', '13', '21', '?', '☕']
 const VELOCITY_STORAGE_KEY = 'pocketscrum_velocity'
 
-function addMemberToVelocityBoard(playerName) {
+function addMemberToVelocityBoard(playerName, playerRole) {
   try {
     const saved = JSON.parse(localStorage.getItem(VELOCITY_STORAGE_KEY) ?? 'null')
-    const members = saved?.members ?? []
+    const role = playerRole === 'qa' ? 'qa' : 'dev'
+    const listKey = role === 'qa' ? 'qaMembers' : 'devMembers'
+    const members = saved?.[listKey] ?? []
     if (members.some(m => m.name === playerName)) return
     members.push({ id: crypto.randomUUID(), name: playerName, capacity: 5 })
-    localStorage.setItem(VELOCITY_STORAGE_KEY, JSON.stringify({ ...saved, members }))
+    localStorage.setItem(VELOCITY_STORAGE_KEY, JSON.stringify({ ...saved, [listKey]: members }))
     window.dispatchEvent(new Event('pocketscrum-velocity-updated'))
   } catch {
     // Ignore localStorage errors
@@ -19,16 +21,25 @@ function addMemberToVelocityBoard(playerName) {
 }
 
 function addToVelocityBoard(taskName, round, votes) {
-  const nums = votes.map(v => Number(v.vote)).filter(n => !isNaN(n) && n > 0)
-  const average = nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null
+  const avg = (roleFilter) => {
+    const nums = votes
+      .filter(v => v.role === roleFilter)
+      .map(v => Number(v.vote))
+      .filter(n => !isNaN(n) && n > 0)
+    return nums.length ? parseFloat((nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2)) : null
+  }
+  const devEstimate = avg('dev') ?? 1
+  const qaEstimate  = avg('qa')  ?? 0
   try {
     const saved = JSON.parse(localStorage.getItem(VELOCITY_STORAGE_KEY) ?? 'null')
     const tasks = saved?.tasks ?? []
     tasks.push({
       id: crypto.randomUUID(),
       title: taskName || `Round ${round}`,
-      estimate: average != null ? parseFloat(average.toFixed(2)) : 1,
-      assigneeId: '',
+      devEstimate,
+      qaEstimate,
+      devAssigneeId: '',
+      qaAssigneeId: '',
       startDate: '',
       endDate: '',
     })
@@ -79,13 +90,13 @@ export default function Room({ session, onLeave, onVelocity }) {
         setRound(p.round)
         setTaskName(p.task_name ?? '')
         setVotes(p.state === 'revealed' ? p.votes ?? [] : null)
-        if (is_scrum_master) p.players?.forEach(pl => addMemberToVelocityBoard(pl.player_name))
+        if (is_scrum_master) p.players?.forEach(pl => addMemberToVelocityBoard(pl.player_name, pl.role))
         break
       }
       case 'player_join':
         setPlayers(msg.payload.players ?? [])
         addLog(`${msg.payload.player_name} a rejoint la room`)
-        if (is_scrum_master) addMemberToVelocityBoard(msg.payload.player_name)
+        if (is_scrum_master) addMemberToVelocityBoard(msg.payload.player_name, msg.payload.role)
         break
       case 'player_leave':
         setPlayers(msg.payload.players ?? [])
