@@ -49,36 +49,46 @@ function addToVelocityBoard(taskName, round, votes) {
   }
 }
 
+function computeSeatPosition(index, count) {
+  // index 0 = current player at bottom center
+  const angle = Math.PI / 2 + (index / count) * 2 * Math.PI
+  return {
+    left: `${50 + 43 * Math.cos(angle)}%`,
+    top:  `${50 + 37 * Math.sin(angle)}%`,
+  }
+}
+
 export default function Room({ session, onLeave, onVelocity }) {
   const { room_code, player_id, token, is_scrum_master } = session
 
-  const [players, setPlayers] = useState([])
-  const [votes, setVotes] = useState(null)      // null = non révélés
-  const [gameState, setGameState] = useState('voting') // 'voting' | 'revealed'
-  const [round, setRound] = useState(1)
-  const [myVote, setMyVote] = useState(null)
-  const [log, setLog] = useState([])
-  const [taskName, setTaskName] = useState('')
-  const [pendingTaskName, setPendingTaskName] = useState('')
+  const [players,   setPlayers]   = useState([])
+  const [votes,     setVotes]     = useState(null)
+  const [gameState, setGameState] = useState('voting')
+  const [round,     setRound]     = useState(1)
+  const [myVote,    setMyVote]    = useState(null)
+  const [log,       setLog]       = useState([])
+  const [taskName,  setTaskName]  = useState('')
 
-  // Refs pour accéder aux valeurs courantes dans onMessage sans créer de dépendances
-  const roundRef = useRef(round)
+  const roundRef    = useRef(round)
   const taskNameRef = useRef(taskName)
-  useEffect(() => { roundRef.current = round }, [round])
+  useEffect(() => { roundRef.current    = round    }, [round])
   useEffect(() => { taskNameRef.current = taskName }, [taskName])
-  const [pendingCard, setPendingCard] = useState(null)
-  const [showModal, setShowModal] = useState(false)
+
+  // Vote justification modal
+  const [pendingCard,   setPendingCard]   = useState(null)
+  const [showVoteModal, setShowVoteModal] = useState(false)
   const [justification, setJustification] = useState('')
 
-  const logRef = useRef(null)
+  // Task name modal
+  const [showTaskModal,  setShowTaskModal]  = useState(false)
+  const [taskModalInput, setTaskModalInput] = useState('')
+  const [taskModalMode,  setTaskModalMode]  = useState('name_task') // 'name_task' | 'new_round'
 
+  const logRef = useRef(null)
   const addLog = (msg) => setLog(l => [...l, `${new Date().toLocaleTimeString()} — ${msg}`].slice(-20))
 
-  // Scroll automatique vers le bas à chaque nouveau message
   useLayoutEffect(() => {
-    if (logRef.current) {
-      logRef.current.scrollTop = logRef.current.scrollHeight
-    }
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
   }, [log])
 
   const onMessage = useCallback((msg) => {
@@ -104,11 +114,7 @@ export default function Room({ session, onLeave, onVelocity }) {
         break
       case 'vote_cast':
         setPlayers(prev =>
-          prev.map(p =>
-            p.player_id === msg.payload.player_id
-              ? { ...p, has_voted: true }
-              : p
-          )
+          prev.map(p => p.player_id === msg.payload.player_id ? { ...p, has_voted: true } : p)
         )
         addLog(`${msg.payload.player_name} a voté`)
         break
@@ -125,11 +131,10 @@ export default function Room({ session, onLeave, onVelocity }) {
         setGameState('voting')
         setMyVote(null)
         setPendingCard(null)
-        setShowModal(false)
+        setShowVoteModal(false)
         setJustification('')
         setRound(msg.payload.round)
         setTaskName(msg.payload.task_name ?? '')
-        setPendingTaskName('')
         setPlayers(prev => prev.map(p => ({ ...p, has_voted: false })))
         addLog(`Nouveau round #${msg.payload.round}`)
         break
@@ -144,27 +149,34 @@ export default function Room({ session, onLeave, onVelocity }) {
 
   const { send } = useWebSocket({ roomCode: room_code, playerId: player_id, token, onMessage, enabled: true })
 
+  function openTaskModal(mode) {
+    setTaskModalMode(mode)
+    setTaskModalInput('')
+    setShowTaskModal(true)
+  }
+
+  function confirmTaskModal() {
+    if (taskModalMode === 'new_round') {
+      send({ type: 'new_round', payload: { task_name: taskModalInput.trim() } })
+    } else if (taskModalInput.trim()) {
+      send({ type: 'set_task_name', payload: { task_name: taskModalInput.trim() } })
+    }
+    setShowTaskModal(false)
+  }
+
   function handleCardClick(card) {
     if (gameState !== 'voting') return
     setPendingCard(card)
     setJustification('')
-    setShowModal(true)
+    setShowVoteModal(true)
   }
 
   function confirmVote(withJustification = true) {
     setMyVote(pendingCard)
     send({ type: 'vote_cast', payload: { vote: pendingCard, justification: withJustification ? justification : '' } })
-    setShowModal(false)
+    setShowVoteModal(false)
     setPendingCard(null)
     setJustification('')
-  }
-
-  function reveal() {
-    send({ type: 'votes_reveal' })
-  }
-
-  function newRound() {
-    send({ type: 'new_round', payload: { task_name: pendingTaskName.trim() } })
   }
 
   const votedCount = players.filter(p => p.has_voted).length
@@ -175,161 +187,137 @@ export default function Room({ session, onLeave, onVelocity }) {
       })()
     : null
 
+  // Current player at index 0 (bottom of table)
+  const myIndex = players.findIndex(p => p.player_id === player_id)
+  const orderedPlayers = myIndex > 0
+    ? [...players.slice(myIndex), ...players.slice(0, myIndex)]
+    : players
+
   return (
     <div className={styles.layout}>
+
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerLeft}>
           <span className={styles.logoSmall}>🃏 PocketScrum</span>
-          <span className={styles.badge}>
-            Room <strong>{room_code}</strong>
-          </span>
+          <span className={styles.badge}>Room <strong>{room_code}</strong></span>
           {is_scrum_master && <span className={styles.smBadge}>Scrum Master</span>}
         </div>
         <div className={styles.headerRight}>
-          <span className={styles.round}>Round #{round}</span>
+          <span className={styles.roundBadge}>Round #{round}</span>
           {is_scrum_master && onVelocity && (
-            <button className={styles.velocityBtn} onClick={onVelocity}>
-              📈 Board Vélocité
-            </button>
+            <button className={styles.velocityBtn} onClick={onVelocity}>📈 Vélocité</button>
           )}
           <button className={styles.leaveBtn} onClick={onLeave}>Quitter</button>
         </div>
       </header>
 
-      {/* Task name banner */}
-      {taskName && (
-        <div className={styles.taskBanner}>
-          Tâche : <strong>{taskName}</strong>
+      {/* Poker table */}
+      <div className={styles.tableArea}>
+        <div className={styles.tableWrapper}>
+
+          {/* Table felt */}
+          <div className={styles.pokerTable} />
+
+          {/* Player seats */}
+          {orderedPlayers.map((p, i) => {
+            const isMe      = p.player_id === player_id
+            const voteData  = votes?.find(v => v.player_id === p.player_id)
+            const pos       = computeSeatPosition(i, orderedPlayers.length)
+
+            return (
+              <div
+                key={p.player_id}
+                className={`${styles.seat} ${isMe ? styles.seatMe : ''}`}
+                style={pos}
+              >
+                <div className={[
+                  styles.seatCard,
+                  gameState === 'revealed' ? styles.seatCardRevealed : p.has_voted ? styles.seatCardVoted : '',
+                  isMe ? styles.seatCardMe : '',
+                ].filter(Boolean).join(' ')}>
+                  {gameState === 'revealed' ? (voteData?.vote ?? '—') : p.has_voted ? '✓' : '?'}
+                </div>
+
+                {gameState === 'revealed' && voteData?.justification && (
+                  <div className={styles.seatJustification}>"{voteData.justification}"</div>
+                )}
+
+                <div className={styles.seatName}>
+                  {p.player_name}{isMe && ' (moi)'}
+                </div>
+                <span className={`${styles.roleBadge} ${p.role === 'qa' ? styles.roleBadgeQa : styles.roleBadgeDev}`}>
+                  {p.role === 'qa' ? 'QA' : 'Dev'}
+                </span>
+              </div>
+            )
+          })}
+
+          {/* Table center */}
+          <div className={styles.tableCenter}>
+            {taskName ? (
+              <p className={styles.tableTask}>{taskName}</p>
+            ) : is_scrum_master ? (
+              <button className={styles.nameTaskBtn} onClick={() => openTaskModal('name_task')}>
+                + Nommer la tâche
+              </button>
+            ) : (
+              <p className={styles.tableNoTask}>En attente d'une tâche…</p>
+            )}
+
+            <p className={styles.tableProgress}>
+              {votedCount}/{players.length} ont voté
+              {votedCount === players.length && players.length > 0 && ' ✓'}
+            </p>
+
+            {gameState === 'revealed' && average && (
+              <div className={styles.tableAverage}>⌀ {average}</div>
+            )}
+
+            {is_scrum_master && gameState === 'voting' && (
+              <button
+                className={styles.revealBtn}
+                onClick={() => send({ type: 'votes_reveal' })}
+                disabled={votedCount === 0}
+              >
+                Révéler les votes
+              </button>
+            )}
+
+            {is_scrum_master && gameState === 'revealed' && (
+              <button className={styles.newRoundBtn} onClick={() => openTaskModal('new_round')}>
+                Nouveau round →
+              </button>
+            )}
+          </div>
+
+        </div>
+      </div>
+
+      {/* Card hand — visible only during voting */}
+      {gameState === 'voting' && (
+        <div className={styles.hand}>
+          {CARDS.map(card => (
+            <button
+              key={card}
+              className={[styles.card, myVote === card ? styles.cardSelected : ''].join(' ')}
+              onClick={() => handleCardClick(card)}
+            >
+              {card}
+            </button>
+          ))}
         </div>
       )}
 
-      <main className={styles.main}>
-        {/* Panneau joueurs */}
-        <section className={styles.players}>
-          <h2>Joueurs ({players.length})</h2>
-          <ul className={styles.playerList}>
-            {players.map(p => (
-              <li key={p.player_id} className={styles.playerRow}>
-                <div className={styles.playerInfo}>
-                  <span className={p.player_id === player_id ? styles.me : ''}>
-                    {p.player_name}
-                    {p.player_id === player_id && ' (moi)'}
-                    <span className={`${styles.roleBadge} ${p.role === 'qa' ? styles.roleBadgeQa : styles.roleBadgeDev}`}>
-                      {p.role === 'qa' ? 'QA' : 'Dev'}
-                    </span>
-                  </span>
-                  {gameState === 'revealed' && votes?.find(v => v.player_id === p.player_id)?.justification && (
-                    <span className={styles.justification}>
-                      "{votes.find(v => v.player_id === p.player_id).justification}"
-                    </span>
-                  )}
-                </div>
-                <span className={p.has_voted ? styles.voted : styles.waiting}>
-                  {gameState === 'revealed'
-                    ? (votes?.find(v => v.player_id === p.player_id)?.vote ?? '—')
-                    : p.has_voted ? '✓' : '…'
-                  }
-                </span>
-              </li>
-            ))}
-          </ul>
-
-          {/* Progression */}
-          <div className={styles.progress}>
-            <div
-              className={styles.progressBar}
-              style={{ width: players.length ? `${(votedCount / players.length) * 100}%` : '0%' }}
-            />
-          </div>
-          <p className={styles.progressLabel}>{votedCount}/{players.length} ont voté</p>
-
-          {/* Résultats */}
-          {gameState === 'revealed' && average && (
-            <div className={styles.average}>
-              Moyenne : <strong>{average}</strong>
-            </div>
-          )}
-
-          {/* Actions Scrum Master */}
-          {is_scrum_master && (
-            <div className={styles.actions}>
-              <div className={styles.taskInputRow}>
-                <input
-                  className={styles.taskInput}
-                  value={pendingTaskName}
-                  onChange={e => setPendingTaskName(e.target.value)}
-                  placeholder={gameState === 'voting' ? 'Nom de la tâche en cours...' : 'Nom de la tâche suivante...'}
-                  maxLength={60}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && gameState === 'voting') {
-                      send({ type: 'set_task_name', payload: { task_name: pendingTaskName.trim() } })
-                    }
-                  }}
-                />
-                {gameState === 'voting' && (
-                  <button
-                    className={styles.setTaskBtn}
-                    onClick={() => send({ type: 'set_task_name', payload: { task_name: pendingTaskName.trim() } })}
-                    title="Nommer la tâche"
-                  >
-                    ✓
-                  </button>
-                )}
-              </div>
-              {gameState === 'voting' && (
-                <button
-                  className={styles.revealBtn}
-                  onClick={reveal}
-                  disabled={votedCount === 0}
-                >
-                  Révéler les votes
-                </button>
-              )}
-              {gameState === 'revealed' && (
-                <button className={styles.newRoundBtn} onClick={newRound}>
-                  Nouveau round
-                </button>
-              )}
-            </div>
-          )}
-        </section>
-
-        {/* Zone de vote */}
-        <section className={styles.voteZone}>
-          <h2>
-            {gameState === 'voting'
-              ? myVote ? `Ton vote : ${myVote}` : 'Choisis une carte'
-              : 'Votes révélés'}
-          </h2>
-          <div className={styles.cards}>
-            {CARDS.map(card => (
-              <button
-                key={card}
-                className={[
-                  styles.card,
-                  myVote === card ? styles.cardSelected : '',
-                  gameState === 'revealed' ? styles.cardDisabled : '',
-                ].join(' ')}
-                onClick={() => handleCardClick(card)}
-                disabled={gameState === 'revealed'}
-              >
-                {card}
-              </button>
-            ))}
-          </div>
-        </section>
-      </main>
-
-      {/* Log d'activité */}
+      {/* Activity log */}
       {log.length > 0 && (
         <footer ref={logRef} className={styles.log}>
           {log.map((entry, i) => <p key={i}>{entry}</p>)}
         </footer>
       )}
 
-      {/* Modal justification */}
-      {showModal && (
+      {/* Vote justification modal */}
+      {showVoteModal && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
             <h3>Ton vote : {pendingCard}</h3>
@@ -345,11 +333,43 @@ export default function Room({ session, onLeave, onVelocity }) {
             />
             <div className={styles.modalActions}>
               <button className={styles.modalConfirm} onClick={() => confirmVote(true)}>Confirmer</button>
-              <button className={styles.modalSkip} onClick={() => confirmVote(false)}>Passer</button>
+              <button className={styles.modalSkip}    onClick={() => confirmVote(false)}>Passer</button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Task name / new round modal */}
+      {showTaskModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <h3>{taskModalMode === 'new_round' ? 'Nouveau round' : 'Nommer la tâche'}</h3>
+            <p className={styles.modalSubtitle}>
+              {taskModalMode === 'new_round'
+                ? 'Nom de la prochaine tâche (optionnel)'
+                : 'Quel est le nom de cette tâche ?'}
+            </p>
+            <input
+              className={styles.modalInput}
+              value={taskModalInput}
+              onChange={e => setTaskModalInput(e.target.value)}
+              placeholder="Ex : Intégrer la page de connexion"
+              maxLength={60}
+              autoFocus
+              onKeyDown={e => { if (e.key === 'Enter') confirmTaskModal() }}
+            />
+            <div className={styles.modalActions}>
+              <button className={styles.modalConfirm} onClick={confirmTaskModal}>
+                {taskModalMode === 'new_round' ? 'Lancer' : 'Confirmer'}
+              </button>
+              <button className={styles.modalSkip} onClick={() => setShowTaskModal(false)}>
+                {taskModalMode === 'new_round' ? 'Passer' : 'Annuler'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
