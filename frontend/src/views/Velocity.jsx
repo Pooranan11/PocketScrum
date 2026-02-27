@@ -409,6 +409,17 @@ export default function Velocity({ onBack, onVisualize }) {
 
   const hasData = devMembers.length > 0 || qaMembers.length > 0 || tasks.length > 0 || sprint.name
 
+  // Indicateur de complétude
+  const completeness = [
+    { label: 'Sprint nommé',       ok: !!sprint.name.trim() },
+    { label: 'Dates renseignées',  ok: !!(sprint.startDate && sprint.endDate) },
+    { label: `Équipe Dev${devMembers.length ? ` (${devMembers.length})` : ''}`, ok: devMembers.length > 0 },
+    { label: `Équipe QA${qaMembers.length  ? ` (${qaMembers.length})`  : ''}`,  ok: qaMembers.length  > 0 },
+    { label: `Tâches${tasks.length ? ` (${tasks.length})` : ''}`,                ok: tasks.length > 0 },
+    { label: 'Tâches assignées',   ok: tasks.length > 0 && tasks.every(t => t.devAssigneeId && t.qaAssigneeId) },
+  ]
+  const completenessScore = completeness.filter(c => c.ok).length
+
   // --- rendu d'une section membres ---
   function MemberSection({ title, accentClass, members, onAdd, onRemove, onUpdate, nameVal, setNameVal, capVal, setCapVal, getAssigned }) {
     return (
@@ -515,19 +526,6 @@ export default function Velocity({ onBack, onVisualize }) {
           ↑ Importer Excel
           <input type="file" accept=".xlsx" onChange={importExcel} style={{ display: 'none' }} />
         </label>
-        {hasData && (
-          <button
-            className={styles.clearBtn}
-            onClick={() => {
-              setSprint({ name: '', startDate: '', endDate: '' })
-              setDevMembers([])
-              setQaMembers([])
-              setTasks([])
-            }}
-          >
-            Tout supprimer
-          </button>
-        )}
       </div>
 
       <div className={styles.layout}>
@@ -743,7 +741,22 @@ export default function Velocity({ onBack, onVisualize }) {
         {/* ── Colonne droite : Sprint + Résumé + Rééquilibrage ── */}
         <div className={styles.rightPanel}>
           <section className={styles.section}>
-            <h2 className={`${styles.sectionTitle} ${styles.stSprint}`}>Sprint</h2>
+            <div className={styles.sprintHeader}>
+              <h2 className={`${styles.sectionTitle} ${styles.stSprint}`}>Sprint</h2>
+              {hasData && (
+                <button
+                  className={styles.resetBtn}
+                  onClick={() => {
+                    setSprint({ name: '', startDate: '', endDate: '' })
+                    setDevMembers([])
+                    setQaMembers([])
+                    setTasks([])
+                  }}
+                >
+                  Réinitialiser
+                </button>
+              )}
+            </div>
             <div className={styles.sprintForm}>
               <input
                 className={`${styles.input} ${styles.inputWide}`}
@@ -771,6 +784,24 @@ export default function Velocity({ onBack, onVisualize }) {
                 />
               </label>
             </div>
+          </section>
+
+          {/* Indicateur de complétude */}
+          <section className={styles.section}>
+            <div className={styles.completenessHeader}>
+              <h2 className={`${styles.sectionTitle} ${styles.stCompleteness}`}>Statut</h2>
+              <span className={`${styles.completenessScore} ${completenessScore === completeness.length ? styles.completenessScoreFull : ''}`}>
+                {completenessScore}/{completeness.length}
+              </span>
+            </div>
+            <ul className={styles.checkList}>
+              {completeness.map(({ label, ok }) => (
+                <li key={label} className={`${styles.checkItem} ${ok ? styles.checkOk : styles.checkKo}`}>
+                  <span className={styles.checkIcon}>{ok ? '✓' : '✗'}</span>
+                  {label}
+                </li>
+              ))}
+            </ul>
           </section>
 
           {(devMembers.length > 0 || qaMembers.length > 0) && (
