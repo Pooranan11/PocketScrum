@@ -215,6 +215,9 @@ export default function Room({ session, onLeave, onVelocity }) {
                   <span className={p.player_id === player_id ? styles.me : ''}>
                     {p.player_name}
                     {p.player_id === player_id && ' (moi)'}
+                    <span className={`${styles.roleBadge} ${p.role === 'qa' ? styles.roleBadgeQa : styles.roleBadgeDev}`}>
+                      {p.role === 'qa' ? 'QA' : 'Dev'}
+                    </span>
                   </span>
                   {gameState === 'revealed' && votes?.find(v => v.player_id === p.player_id)?.justification && (
                     <span className={styles.justification}>

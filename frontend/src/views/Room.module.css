@@ -88,6 +88,28 @@
 .voted { color: #34d399; font-weight: 700; font-size: 1rem; }
 .waiting { color: #475569; }
 
+.roleBadge {
+  display: inline-block;
+  font-size: .65rem;
+  font-weight: 700;
+  padding: .1rem .4rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  vertical-align: middle;
+  margin-left: .35rem;
+}
+.roleBadgeDev {
+  background: rgba(99,102,241,.2);
+  color: #818cf8;
+  border: 1px solid rgba(99,102,241,.3);
+}
+.roleBadgeQa {
+  background: rgba(245,158,11,.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245,158,11,.3);
+}
+
 .progress {
   background: #0f172a;
   border-radius: 4px;

@@ -37,6 +37,7 @@ from models.schemas import (
 from services.room import (
     build_room_state,
     cast_vote,
+    get_player_roles,
     get_players,
     remove_player,
     reveal_votes,
@@ -282,6 +283,7 @@ async def websocket_endpoint(
 
     # --- Annonce player_join aux autres participants ---
     players = await get_players(redis, room_code)
+    roles = await get_player_roles(redis, room_code)
     await _publish(
         redis,
         room_code,
@@ -289,8 +291,9 @@ async def websocket_endpoint(
         {
             "player_id": player_id,
             "player_name": players.get(player_id, "Inconnu"),
+            "role": roles.get(player_id, "dev"),
             "players": [
-                {"player_id": pid, "player_name": name}
+                {"player_id": pid, "player_name": name, "role": roles.get(pid, "dev")}
                 for pid, name in players.items()
             ],
         },

@@ -5,10 +5,8 @@ import {
 } from 'recharts'
 import styles from './Visualisation.module.css'
 
-const MEMBER_COLORS = [
-  '#6366f1', '#10b981', '#f59e0b', '#ec4899',
-  '#14b8a6', '#8b5cf6', '#f97316', '#06b6d4',
-]
+const DEV_COLORS = ['#6366f1', '#8b5cf6', '#06b6d4', '#14b8a6', '#3b82f6', '#a78bfa', '#67e8f9', '#93c5fd']
+const QA_COLORS  = ['#f59e0b', '#f97316', '#ec4899', '#10b981', '#fbbf24', '#fb923c', '#f472b6', '#34d399']
 
 function CustomBarTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
@@ -41,27 +39,95 @@ async function parseExcel(file) {
   // ── Résumé ──
   const sumRows = XLSX.utils.sheet_to_json(wb.Sheets['Résumé'], { header: 1 })
   const sprint = {
-    name:          sumRows[0]?.[1] ?? '',
-    startDate:     sumRows[1]?.[1] ?? '—',
-    endDate:       sumRows[2]?.[1] ?? '—',
-    totalPlanned:  sumRows[4]?.[1] ?? 0,
-    totalCapacity: sumRows[5]?.[1] ?? 0,
-    teamLoad:      sumRows[6]?.[1] ?? 0,
+    name:             String(sumRows[0]?.[1] ?? ''),
+    startDate:        sumRows[1]?.[1] ?? '—',
+    endDate:          sumRows[2]?.[1] ?? '—',
+    devTotalPlanned:  sumRows[4]?.[1] ?? 0,
+    qaTotalPlanned:   sumRows[5]?.[1] ?? 0,
+    devTotalCapacity: sumRows[6]?.[1] ?? 0,
+    qaTotalCapacity:  sumRows[7]?.[1] ?? 0,
+    devTeamLoad:      sumRows[8]?.[1] ?? 0,
+    qaTeamLoad:       sumRows[9]?.[1] ?? 0,
   }
 
-  // ── Capacité ──
-  const capRows = XLSX.utils.sheet_to_json(wb.Sheets['Capacité'], { header: 1 })
-  const members = capRows.slice(1)
+  // ── Capacité Dev ──
+  const devCapRows = XLSX.utils.sheet_to_json(wb.Sheets['Capacité Dev'] ?? {}, { header: 1 })
+  const devMembers = (devCapRows ?? []).slice(1)
+    .map(r => ({ name: r[0], capacity: r[1], assigned: r[2], load: r[3], status: r[4] }))
+    .filter(m => m.name)
+
+  // ── Capacité QA ──
+  const qaCapRows = XLSX.utils.sheet_to_json(wb.Sheets['Capacité QA'] ?? {}, { header: 1 })
+  const qaMembers = (qaCapRows ?? []).slice(1)
     .map(r => ({ name: r[0], capacity: r[1], assigned: r[2], load: r[3], status: r[4] }))
     .filter(m => m.name)
 
   // ── Tâches ──
   const taskRows = XLSX.utils.sheet_to_json(wb.Sheets['Tâches'], { header: 1 })
-  const tasks = taskRows.slice(1)
-    .map(r => ({ title: r[0], estimate: r[1], assignee: r[2], startDate: r[3], endDate: r[4] }))
+  const tasks = (taskRows ?? []).slice(1)
+    .map(r => ({
+      title:       r[0],
+      devEstimate: r[1] ?? 0,
+      qaEstimate:  r[2] ?? 0,
+      devAssignee: r[3],
+      qaAssignee:  r[4],
+      startDate:   r[5],
+      endDate:     r[6],
+    }))
     .filter(t => t.title)
 
-  return { sprint, members, tasks }
+  return { sprint, devMembers, qaMembers, tasks }
+}
+
+function MembersTable({ members, colors }) {
+  return (
+    <div className={styles.tableWrap}>
+      <table className={styles.table}>
+        <thead>
+          <tr>
+            <th>Membre</th>
+            <th>Capacité max</th>
+            <th>Assigné</th>
+            <th>Charge</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          {members.map((m, i) => {
+            const over = m.status !== 'OK'
+            return (
+              <tr key={i}>
+                <td>
+                  <span className={styles.memberName}>
+                    <span className={styles.memberDot} style={{ background: colors[i % colors.length] }} />
+                    {m.name}
+                  </span>
+                </td>
+                <td>{m.capacity}j</td>
+                <td>{m.assigned}j</td>
+                <td>
+                  <div className={styles.barRow}>
+                    <div className={styles.barTrack}>
+                      <div
+                        className={`${styles.barFill} ${over ? styles.barOver : ''}`}
+                        style={{ width: `${Math.min(m.load, 100)}%` }}
+                      />
+                    </div>
+                    <span className={`${styles.pct} ${over ? styles.pctOver : ''}`}>{m.load}%</span>
+                  </div>
+                </td>
+                <td>
+                  <span className={`${styles.badge} ${over ? styles.badgeOver : styles.badgeOk}`}>
+                    {m.status}
+                  </span>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
 }
 
 export default function Visualisation({ onBack, initialData = null }) {
@@ -82,33 +148,39 @@ export default function Visualisation({ onBack, initialData = null }) {
     }
   }, [])
 
-  const onDrop = useCallback(e => {
-    e.preventDefault()
-    setDragging(false)
-    handleFile(e.dataTransfer.files[0])
-  }, [handleFile])
-
+  const onDrop  = useCallback(e => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]) }, [handleFile])
   const onInput = useCallback(e => handleFile(e.target.files[0]), [handleFile])
 
-  // ── Données graphiques ──
-  const barData = (data?.members ?? []).map(m => ({
-    name:            m.name,
-    'Capacité max':  m.capacity,
-    'Assigné':       m.assigned,
+  // ── Bar data ──
+  const devBarData = (data?.devMembers ?? []).map(m => ({
+    name: m.name, 'Capacité max': m.capacity, 'Assigné': m.assigned,
+  }))
+  const qaBarData = (data?.qaMembers ?? []).map(m => ({
+    name: m.name, 'Capacité max': m.capacity, 'Assigné': m.assigned,
   }))
 
-  const assignedByMember = {}
+  // ── Pie Dev ──
+  const devAssignedMap = {}
   data?.tasks.forEach(t => {
-    if (t.assignee && t.assignee !== '—') {
-      assignedByMember[t.assignee] = (assignedByMember[t.assignee] ?? 0) + (t.estimate ?? 0)
-    }
+    if (t.devAssignee && t.devAssignee !== '—')
+      devAssignedMap[t.devAssignee] = (devAssignedMap[t.devAssignee] ?? 0) + (t.devEstimate ?? 0)
   })
-  const unassigned = data?.tasks
-    .filter(t => !t.assignee || t.assignee === '—')
-    .reduce((s, t) => s + (t.estimate ?? 0), 0) ?? 0
-  const pieData = [
-    ...Object.entries(assignedByMember).map(([name, value]) => ({ name, value })),
-    ...(unassigned > 0 ? [{ name: 'Non assigné', value: unassigned }] : []),
+  const devUnassigned = data?.tasks.filter(t => !t.devAssignee || t.devAssignee === '—').reduce((s, t) => s + (t.devEstimate ?? 0), 0) ?? 0
+  const devPieData = [
+    ...Object.entries(devAssignedMap).map(([name, value]) => ({ name, value })),
+    ...(devUnassigned > 0 ? [{ name: 'Non assigné', value: devUnassigned }] : []),
+  ]
+
+  // ── Pie QA ──
+  const qaAssignedMap = {}
+  data?.tasks.forEach(t => {
+    if (t.qaAssignee && t.qaAssignee !== '—')
+      qaAssignedMap[t.qaAssignee] = (qaAssignedMap[t.qaAssignee] ?? 0) + (t.qaEstimate ?? 0)
+  })
+  const qaUnassigned = data?.tasks.filter(t => !t.qaAssignee || t.qaAssignee === '—').reduce((s, t) => s + (t.qaEstimate ?? 0), 0) ?? 0
+  const qaPieData = [
+    ...Object.entries(qaAssignedMap).map(([name, value]) => ({ name, value })),
+    ...(qaUnassigned > 0 ? [{ name: 'Non assigné', value: qaUnassigned }] : []),
   ]
 
   return (
@@ -130,7 +202,6 @@ export default function Visualisation({ onBack, initialData = null }) {
       </div>
 
       {!data ? (
-        /* ── Drop zone ── */
         <div
           className={`${styles.dropZone} ${dragging ? styles.dropZoneActive : ''}`}
           onDragOver={e => { e.preventDefault(); setDragging(true) }}
@@ -155,177 +226,175 @@ export default function Visualisation({ onBack, initialData = null }) {
             <div className={styles.sprintBanner}>
               {data.sprint.name && <span className={styles.sprintName}>{data.sprint.name}</span>}
               {(data.sprint.startDate !== '—' || data.sprint.endDate !== '—') && (
-                <span className={styles.sprintDates}>
-                  {data.sprint.startDate} → {data.sprint.endDate}
-                </span>
+                <span className={styles.sprintDates}>{data.sprint.startDate} → {data.sprint.endDate}</span>
               )}
             </div>
           )}
 
-          {/* ── Stats ── */}
-          <div className={styles.statRow}>
-            {[
-              { val: `${data.sprint.totalPlanned}j`, label: 'Vélocité planifiée' },
-              { val: `${data.sprint.totalCapacity}j`, label: 'Capacité totale' },
-              { val: `${data.sprint.teamLoad}%`, label: 'Charge équipe', over: data.sprint.teamLoad > 100 },
-              { val: data.members.length, label: 'Membres' },
-              { val: data.tasks.length, label: 'Tâches' },
-            ].map(({ val, label, over }) => (
-              <div key={label} className={styles.statCard}>
-                <span className={`${styles.statVal} ${over ? styles.statOver : ''}`}>{val}</span>
-                <span className={styles.statLabel}>{label}</span>
+          {/* ── Stats Dev ── */}
+          <div className={styles.statGroup}>
+            <span className={styles.statGroupLabel}>Dev</span>
+            <div className={styles.statRow}>
+              {[
+                { val: `${data.sprint.devTotalPlanned}j`, label: 'Vélocité planifiée' },
+                { val: `${data.sprint.devTotalCapacity}j`, label: 'Capacité totale' },
+                { val: `${data.sprint.devTeamLoad}%`, label: 'Charge équipe', over: data.sprint.devTeamLoad > 100 },
+                { val: data.devMembers.length, label: 'Membres Dev' },
+              ].map(({ val, label, over }) => (
+                <div key={label} className={styles.statCard}>
+                  <span className={`${styles.statVal} ${over ? styles.statOver : ''}`}>{val}</span>
+                  <span className={styles.statLabel}>{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Stats QA ── */}
+          <div className={styles.statGroup}>
+            <span className={`${styles.statGroupLabel} ${styles.statGroupLabelQa}`}>QA / Fonc</span>
+            <div className={styles.statRow}>
+              {[
+                { val: `${data.sprint.qaTotalPlanned}j`, label: 'Vélocité planifiée' },
+                { val: `${data.sprint.qaTotalCapacity}j`, label: 'Capacité totale' },
+                { val: `${data.sprint.qaTeamLoad}%`, label: 'Charge équipe', over: data.sprint.qaTeamLoad > 100 },
+                { val: data.qaMembers.length, label: 'Membres QA' },
+              ].map(({ val, label, over }) => (
+                <div key={label} className={`${styles.statCard} ${styles.statCardQa}`}>
+                  <span className={`${styles.statVal} ${styles.statValQa} ${over ? styles.statOver : ''}`}>{val}</span>
+                  <span className={styles.statLabel}>{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Graphiques Dev ── */}
+          {data.devMembers.length > 0 && (
+            <div className={styles.charts}>
+              <div className={styles.chartCard}>
+                <h2 className={styles.chartTitle}>Capacité vs Charge — Dev</h2>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={devBarData} margin={{ top: 8, right: 16, left: -10, bottom: 24 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={{ stroke: '#334155' }} tickLine={false} />
+                    <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={{ stroke: '#334155' }} tickLine={false} unit="j" />
+                    <Tooltip content={<CustomBarTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+                    <Legend wrapperStyle={{ color: '#94a3b8', fontSize: '.8rem', paddingTop: '8px' }} />
+                    <Bar dataKey="Capacité max" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Assigné" radius={[4, 4, 0, 0]}>
+                      {devBarData.map((entry, i) => (
+                        <Cell key={i} fill={entry['Assigné'] > entry['Capacité max'] ? '#ef4444' : '#10b981'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-            ))}
-          </div>
 
-          {/* ── Graphiques ── */}
-          <div className={styles.charts}>
-
-            {/* Bar chart : capacité vs assigné */}
-            <div className={styles.chartCard}>
-              <h2 className={styles.chartTitle}>Capacité vs Charge par membre</h2>
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={barData} margin={{ top: 8, right: 16, left: -10, bottom: 24 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fill: '#94a3b8', fontSize: 12 }}
-                    axisLine={{ stroke: '#334155' }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fill: '#94a3b8', fontSize: 12 }}
-                    axisLine={{ stroke: '#334155' }}
-                    tickLine={false}
-                    unit="j"
-                  />
-                  <Tooltip content={<CustomBarTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                  <Legend wrapperStyle={{ color: '#94a3b8', fontSize: '.8rem', paddingTop: '8px' }} />
-                  <Bar dataKey="Capacité max" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Assigné" radius={[4, 4, 0, 0]}>
-                    {barData.map((entry, i) => (
-                      <Cell
-                        key={i}
-                        fill={entry['Assigné'] > entry['Capacité max'] ? '#ef4444' : '#10b981'}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <div className={styles.chartCard}>
+                <h2 className={styles.chartTitle}>Répartition tâches Dev (j estimés)</h2>
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie data={devPieData} cx="50%" cy="46%" innerRadius={70} outerRadius={110} paddingAngle={3} dataKey="value">
+                      {devPieData.map((entry, i) => (
+                        <Cell key={i} fill={entry.name === 'Non assigné' ? '#475569' : DEV_COLORS[i % DEV_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomPieTooltip />} />
+                    <Legend wrapperStyle={{ color: '#94a3b8', fontSize: '.8rem' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             </div>
+          )}
 
-            {/* Pie chart : répartition des tâches */}
-            <div className={styles.chartCard}>
-              <h2 className={styles.chartTitle}>Répartition des tâches (j estimés)</h2>
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="46%"
-                    innerRadius={70}
-                    outerRadius={110}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, i) => (
-                      <Cell
-                        key={i}
-                        fill={entry.name === 'Non assigné' ? '#475569' : MEMBER_COLORS[i % MEMBER_COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomPieTooltip />} />
-                  <Legend wrapperStyle={{ color: '#94a3b8', fontSize: '.8rem' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          {/* ── Graphiques QA ── */}
+          {data.qaMembers.length > 0 && (
+            <div className={styles.charts}>
+              <div className={styles.chartCard}>
+                <h2 className={`${styles.chartTitle} ${styles.chartTitleQa}`}>Capacité vs Charge — QA / Fonc</h2>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={qaBarData} margin={{ top: 8, right: 16, left: -10, bottom: 24 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={{ stroke: '#334155' }} tickLine={false} />
+                    <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={{ stroke: '#334155' }} tickLine={false} unit="j" />
+                    <Tooltip content={<CustomBarTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+                    <Legend wrapperStyle={{ color: '#94a3b8', fontSize: '.8rem', paddingTop: '8px' }} />
+                    <Bar dataKey="Capacité max" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Assigné" radius={[4, 4, 0, 0]}>
+                      {qaBarData.map((entry, i) => (
+                        <Cell key={i} fill={entry['Assigné'] > entry['Capacité max'] ? '#ef4444' : '#10b981'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
 
-          {/* ── Tableau membres ── */}
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Détail des membres</h2>
-            <div className={styles.tableWrap}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Membre</th>
-                    <th>Capacité max</th>
-                    <th>Assigné</th>
-                    <th>Charge</th>
-                    <th>Statut</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.members.map((m, i) => {
-                    const over = m.status !== 'OK'
-                    return (
-                      <tr key={i}>
-                        <td>
-                          <span className={styles.memberName}>
-                            <span
-                              className={styles.memberDot}
-                              style={{ background: MEMBER_COLORS[i % MEMBER_COLORS.length] }}
-                            />
-                            {m.name}
-                          </span>
-                        </td>
-                        <td>{m.capacity}j</td>
-                        <td>{m.assigned}j</td>
-                        <td>
-                          <div className={styles.barRow}>
-                            <div className={styles.barTrack}>
-                              <div
-                                className={`${styles.barFill} ${over ? styles.barOver : ''}`}
-                                style={{ width: `${Math.min(m.load, 100)}%` }}
-                              />
-                            </div>
-                            <span className={`${styles.pct} ${over ? styles.pctOver : ''}`}>{m.load}%</span>
-                          </div>
-                        </td>
-                        <td>
-                          <span className={`${styles.badge} ${over ? styles.badgeOver : styles.badgeOk}`}>
-                            {m.status}
-                          </span>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+              <div className={styles.chartCard}>
+                <h2 className={`${styles.chartTitle} ${styles.chartTitleQa}`}>Répartition tâches QA (j estimés)</h2>
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie data={qaPieData} cx="50%" cy="46%" innerRadius={70} outerRadius={110} paddingAngle={3} dataKey="value">
+                      {qaPieData.map((entry, i) => (
+                        <Cell key={i} fill={entry.name === 'Non assigné' ? '#475569' : QA_COLORS[i % QA_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomPieTooltip />} />
+                    <Legend wrapperStyle={{ color: '#94a3b8', fontSize: '.8rem' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* ── Tableau membres Dev ── */}
+          {data.devMembers.length > 0 && (
+            <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>Membres Dev</h2>
+              <MembersTable members={data.devMembers} colors={DEV_COLORS} />
+            </div>
+          )}
+
+          {/* ── Tableau membres QA ── */}
+          {data.qaMembers.length > 0 && (
+            <div className={styles.section}>
+              <h2 className={`${styles.sectionTitle} ${styles.sectionTitleQa}`}>Membres QA / Fonc</h2>
+              <MembersTable members={data.qaMembers} colors={QA_COLORS} />
+            </div>
+          )}
 
           {/* ── Tableau tâches ── */}
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Tâches</h2>
-            <div className={styles.tableWrap}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Tâche</th>
-                    <th>Estimation</th>
-                    <th>Assigné à</th>
-                    <th>Début</th>
-                    <th>Fin</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.tasks.map((t, i) => (
-                    <tr key={i}>
-                      <td>{t.title}</td>
-                      <td>{t.estimate}j</td>
-                      <td className={!t.assignee || t.assignee === '—' ? styles.unassigned : ''}>
-                        {t.assignee ?? '—'}
-                      </td>
-                      <td className={styles.dim}>{t.startDate ?? '—'}</td>
-                      <td className={styles.dim}>{t.endDate ?? '—'}</td>
+          {data.tasks.length > 0 && (
+            <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>Tâches ({data.tasks.length})</h2>
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Tâche</th>
+                      <th>Est. Dev</th>
+                      <th>Est. QA</th>
+                      <th>Assigné Dev</th>
+                      <th>Assigné QA</th>
+                      <th>Début</th>
+                      <th>Fin</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {data.tasks.map((t, i) => (
+                      <tr key={i}>
+                        <td>{t.title}</td>
+                        <td>{t.devEstimate ?? 0}j</td>
+                        <td>{t.qaEstimate ?? 0}j</td>
+                        <td className={!t.devAssignee || t.devAssignee === '—' ? styles.unassigned : ''}>{t.devAssignee ?? '—'}</td>
+                        <td className={!t.qaAssignee || t.qaAssignee === '—' ? styles.unassigned : ''}>{t.qaAssignee ?? '—'}</td>
+                        <td className={styles.dim}>{t.startDate ?? '—'}</td>
+                        <td className={styles.dim}>{t.endDate ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
 
         </div>
       )}

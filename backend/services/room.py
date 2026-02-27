@@ -129,6 +129,11 @@ async def get_players(redis: Redis, code: str) -> dict[str, str]:
     return await redis.hgetall(_players_key(code))
 
 
+async def get_player_roles(redis: Redis, code: str) -> dict[str, str]:
+    """Retourne le dict {player_id -> role} des joueurs actifs."""
+    return await redis.hgetall(_roles_key(code))
+
+
 async def get_votes(redis: Redis, code: str) -> dict[str, str]:
     """Retourne le dict {player_id -> vote} des votes en cours."""
     return await redis.hgetall(_votes_key(code))

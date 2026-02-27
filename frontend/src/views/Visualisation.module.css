@@ -143,6 +143,24 @@
   color: #64748b;
 }
 
+/* ── Stat group (Dev / QA) ── */
+.statGroup {
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+
+.statGroupLabel {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #818cf8;
+  padding-left: .25rem;
+}
+
+.statGroupLabelQa { color: #fbbf24; }
+
 /* ── Stat row ── */
 .statRow {
   display: flex;
@@ -172,6 +190,12 @@
 }
 
 .statOver { color: #ef4444; }
+
+.statCardQa {
+  border-color: rgba(245,158,11,.15);
+}
+
+.statValQa { color: #fbbf24; }
 
 .statLabel {
   font-size: .72rem;
@@ -203,6 +227,8 @@
   border-left: 3px solid #6366f1;
   line-height: 1.3;
 }
+
+.chartTitleQa { border-left-color: #f59e0b; }
 
 /* ── Tooltip ── */
 .tooltip {
@@ -239,6 +265,11 @@
   margin: 0;
   padding-left: .75rem;
   border-left: 3px solid #6366f1;
+}
+
+.sectionTitleQa {
+  color: #fde68a;
+  border-left-color: #f59e0b;
 }
 
 /* ── Table ── */
