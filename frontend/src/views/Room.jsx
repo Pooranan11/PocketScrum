@@ -90,6 +90,23 @@ export default function Room({ session, onLeave, onVelocity }) {
   const [taskModalInput, setTaskModalInput] = useState('')
   const [taskModalMode,  setTaskModalMode]  = useState('name_task') // 'name_task' | 'new_round'
 
+  // Auto-show task modal when SM connects and task name is empty
+  const hasAutoShownTaskModal = useRef(false)
+  useEffect(() => {
+    if (
+      is_scrum_master &&
+      gameState === 'voting' &&
+      !taskName &&
+      players.length > 0 &&
+      !hasAutoShownTaskModal.current
+    ) {
+      hasAutoShownTaskModal.current = true
+      setTaskModalMode('name_task')
+      setTaskModalInput('')
+      setShowTaskModal(true)
+    }
+  }, [gameState, taskName, players.length])
+
   const logRef = useRef(null)
   const addLog = (msg) => setLog(l => [...l, `${new Date().toLocaleTimeString()} — ${msg}`].slice(-20))
 
