@@ -96,7 +96,7 @@
   top: 14%;
   bottom: 14%;
   background: radial-gradient(ellipse at 40% 38%, #1e293b, #0f172a);
-  border-radius: 50%;
+  border-radius: 24px;
   border: 2px solid #334155;
   box-shadow:
     0 0 0 1px rgba(99,102,241,.12),
