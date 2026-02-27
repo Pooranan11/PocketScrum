@@ -83,25 +83,25 @@
   position: relative;
   width: 100%;
   max-width: 820px;
-  height: min(460px, 56vw);
-  min-height: 300px;
+  min-height: 200px;
   overflow: visible;
+  transition: height .3s ease;
 }
 
 /* ── Table ── */
 .pokerTable {
   position: absolute;
-  left: 13%;
-  right: 13%;
-  top: 14%;
-  bottom: 14%;
+  left: 20%;
+  right: 20%;
+  top: 18%;
+  bottom: 18%;
   background: radial-gradient(ellipse at 40% 38%, #1e293b, #0f172a);
-  border-radius: 24px;
+  border-radius: 20px;
   border: 2px solid #334155;
   box-shadow:
     0 0 0 1px rgba(99,102,241,.12),
-    inset 0 0 50px rgba(0,0,0,.3),
-    0 20px 50px rgba(0,0,0,.5);
+    inset 0 0 40px rgba(0,0,0,.25),
+    0 16px 40px rgba(0,0,0,.45);
 }
 
 /* ── Seats ── */
@@ -200,10 +200,10 @@
 /* ── Table center ── */
 .tableCenter {
   position: absolute;
-  left: 13%;
-  right: 13%;
-  top: 14%;
-  bottom: 14%;
+  left: 20%;
+  right: 20%;
+  top: 18%;
+  bottom: 18%;
   display: flex;
   flex-direction: column;
   align-items: center;

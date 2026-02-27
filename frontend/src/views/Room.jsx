@@ -50,12 +50,18 @@ function addToVelocityBoard(taskName, round, votes) {
 }
 
 function computeSeatPosition(index, count) {
-  // index 0 = current player at bottom center
   const angle = Math.PI / 2 + (index / count) * 2 * Math.PI
   return {
-    left: `${50 + 43 * Math.cos(angle)}%`,
-    top:  `${50 + 37 * Math.sin(angle)}%`,
+    left: `${50 + 40 * Math.cos(angle)}%`,
+    top:  `${50 + 34 * Math.sin(angle)}%`,
   }
+}
+
+function getWrapperHeight(count) {
+  if (count <= 2) return 'min(240px, 44vw)'
+  if (count <= 4) return 'min(300px, 48vw)'
+  if (count <= 6) return 'min(360px, 52vw)'
+  return 'min(420px, 56vw)'
 }
 
 export default function Room({ session, onLeave, onVelocity }) {
@@ -214,7 +220,7 @@ export default function Room({ session, onLeave, onVelocity }) {
 
       {/* Poker table */}
       <div className={styles.tableArea}>
-        <div className={styles.tableWrapper}>
+        <div className={styles.tableWrapper} style={{ height: getWrapperHeight(players.length) }}>
 
           {/* Table felt */}
           <div className={styles.pokerTable} />
