@@ -4,19 +4,25 @@ import styles from './Background.module.css'
 const FIB = [1, 2, 3, 5, 8, 13, 21, 34, '?', '∞']
 
 const POKER_CHIPS = [
-  { value: 1,  left: '7%',  top: '20%', dur: '5s',   delay: '0s'   },
-  { value: 2,  left: '17%', top: '62%', dur: '6.5s', delay: '1.2s' },
-  { value: 3,  left: '80%', top: '28%', dur: '4.8s', delay: '0.5s' },
-  { value: 5,  left: '89%', top: '68%', dur: '5.5s', delay: '2.1s' },
-  { value: 8,  left: '54%', top: '12%', dur: '7s',   delay: '1.5s' },
-  { value: 13, left: '40%', top: '78%', dur: '6s',   delay: '0.8s' },
-  { value: 21, left: '71%', top: '52%', dur: '5.2s', delay: '3s'   },
+  { value: 1,   left: '5%',  top: '18%', dur: '5s',   delay: '0s'   },
+  { value: 2,   left: '14%', top: '60%', dur: '6.5s', delay: '1.2s' },
+  { value: 3,   left: '25%', top: '35%', dur: '5.8s', delay: '2.5s' },
+  { value: 5,   left: '38%', top: '70%', dur: '7.2s', delay: '0.4s' },
+  { value: 8,   left: '52%', top: '10%', dur: '5s',   delay: '1.8s' },
+  { value: 13,  left: '63%', top: '55%', dur: '6s',   delay: '3.2s' },
+  { value: 21,  left: '74%', top: '28%', dur: '4.8s', delay: '0.9s' },
+  { value: 34,  left: '84%', top: '65%', dur: '5.5s', delay: '2s'   },
+  { value: '?', left: '91%', top: '20%', dur: '6.8s', delay: '1.5s' },
+  { value: '∞', left: '46%', top: '82%', dur: '7s',   delay: '4s'   },
+  { value: 1,   left: '31%', top: '15%', dur: '5.3s', delay: '3.8s' },
+  { value: 3,   left: '68%', top: '88%', dur: '6.2s', delay: '0.6s' },
 ]
 
 const SPRINT_CARDS = [
-  { label: 'Sprint',        value: '12',     left: '10%', dur: '20s', delay: '0s'  },
-  { label: 'Velocity',      value: '34 pts', left: '42%', dur: '25s', delay: '8s'  },
-  { label: 'Story Points',  value: '89',     left: '73%', dur: '22s', delay: '15s' },
+  { label: 'Sprint',        value: '12',     left: '7%',  dur: '20s', delay: '0s'  },
+  { label: 'Velocity',      value: '34 pts', left: '30%', dur: '25s', delay: '5s'  },
+  { label: 'Story Points',  value: '89',     left: '53%', dur: '22s', delay: '11s' },
+  { label: 'Team',          value: '6 devs', left: '75%', dur: '27s', delay: '17s' },
 ]
 
 export default function Background() {
