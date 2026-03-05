@@ -1,0 +1,93 @@
+.canvas {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.gradientOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(ellipse 60% 50% at 15% 80%, rgba(99,102,241,0.16) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 85% 15%, rgba(129,140,248,0.12) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 50% at 55% 50%, rgba(99,102,241,0.06) 0%, transparent 100%),
+    radial-gradient(ellipse 80% 60% at 50% 50%, transparent 45%, rgba(10,14,26,0.55) 100%);
+  pointer-events: none;
+  animation: overlayDrift 90s ease-in-out infinite alternate;
+}
+
+@keyframes overlayDrift {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(-1.5%, 1%) scale(1.02); }
+  100% { transform: translate(1%, -1%) scale(0.98); }
+}
+
+.floatLayer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* ── Floating poker cards ── */
+.pokerChip {
+  position: absolute;
+  width: 48px;
+  height: 68px;
+  border-radius: 10px;
+  border: 1px solid rgba(129, 140, 248, 0.12);
+  background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(129,140,248,0.03));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Mono', 'Courier New', monospace;
+  font-size: 18px;
+  font-weight: 400;
+  color: rgba(240, 240, 255, 0.09);
+  animation: floatChip ease-in-out infinite;
+  backdrop-filter: blur(1px);
+}
+
+@keyframes floatChip {
+  0%   { transform: translateY(0)     rotate(-4deg) scale(1); }
+  50%  { transform: translateY(-18px) rotate(3deg)  scale(1.04); }
+  100% { transform: translateY(0)     rotate(-4deg) scale(1); }
+}
+
+/* ── Floating sprint counter cards ── */
+.sprintCard {
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.04);
+  backdrop-filter: blur(2px);
+  padding: 8px 14px;
+  animation: floatCard linear infinite;
+}
+
+.sprintLabel {
+  font-family: 'DM Mono', 'Courier New', monospace;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(99, 102, 241, 0.45);
+  margin-bottom: 3px;
+}
+
+.sprintValue {
+  font-family: 'DM Mono', 'Courier New', monospace;
+  font-size: 16px;
+  font-weight: 300;
+  color: rgba(240, 240, 255, 0.1);
+}
+
+@keyframes floatCard {
+  0%   { transform: translateY(0);       opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
+  100% { transform: translateY(-110vh);  opacity: 0; }
+}

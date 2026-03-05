@@ -4,6 +4,7 @@ import Home from './views/Home.jsx'
 import Room from './views/Room.jsx'
 import Velocity from './views/Velocity.jsx'
 import Footer from './components/Footer.jsx'
+import Background from './components/Background.jsx'
 import './App.css'
 
 const Visualisation = lazy(() => import('./views/Visualisation.jsx'))
@@ -42,6 +43,7 @@ export default function App() {
   if (session) {
     return (
       <>
+        <Background />
         <div className="app" style={view !== 'game' ? { display: 'none' } : {}}>
           <Room
             session={session}
@@ -63,6 +65,7 @@ export default function App() {
   if (view === 'velocity') {
     return (
       <>
+        <Background />
         <div className="app" style={{ justifyContent: 'flex-start' }}>
           <Velocity onBack={handleBack} onVisualize={handleVisualize} />
         </div>
@@ -74,6 +77,7 @@ export default function App() {
   if (view === 'visualisation') {
     return (
       <Suspense fallback={<div className="app" />}>
+        <Background />
         <div className="app" style={{ justifyContent: 'flex-start' }}>
           <Visualisation
             onBack={vizData ? () => setView('velocity') : handleBack}
@@ -88,6 +92,7 @@ export default function App() {
   if (view === 'game') {
     return (
       <>
+        <Background />
         <div className="app">
           <Home onJoin={handleJoin} onBack={handleBack} />
         </div>
@@ -98,6 +103,7 @@ export default function App() {
 
   return (
     <>
+      <Background />
       <div className="app">
         <Dashboard onSelectTool={handleSelectTool} />
       </div>
