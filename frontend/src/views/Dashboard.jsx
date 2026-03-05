@@ -43,15 +43,21 @@ export default function Dashboard({ onSelectTool }) {
             disabled={!tool.available}
             aria-disabled={!tool.available}
           >
-            <span className={styles.icon}>{tool.icon}</span>
-            <h2 className={styles.toolName}>{tool.name}</h2>
-            <p className={styles.toolDesc}>{tool.description}</p>
-            <span className={tool.available ? styles.badgeAvailable : styles.badgeSoon}>
-              {tool.available ? 'Disponible' : 'Bientôt disponible'}
-            </span>
-            {tool.available && (
-              <span className={styles.cardCta}>Commencer →</span>
-            )}
+            <div className={styles.iconContainer}>
+              <span className={styles.icon}>{tool.icon}</span>
+            </div>
+            <div className={styles.cardContent}>
+              <h2 className={styles.toolName}>{tool.name}</h2>
+              <p className={styles.toolDesc}>{tool.description}</p>
+            </div>
+            <div className={styles.cardFooter}>
+              <span className={tool.available ? styles.badgeAvailable : styles.badgeSoon}>
+                {tool.available ? 'Disponible' : 'Bientôt disponible'}
+              </span>
+              {tool.available && (
+                <span className={styles.cardCta}>Commencer →</span>
+              )}
+            </div>
           </button>
         ))}
       </div>

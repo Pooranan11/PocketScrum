@@ -129,7 +129,12 @@
 
 
 .titleWhite  { color: #ffffff; }
-.titleAccent { color: #6366f1; }
+.titleAccent {
+  background: linear-gradient(135deg, #6366f1, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
 /* ── Layout grid ── */
 .layout {
