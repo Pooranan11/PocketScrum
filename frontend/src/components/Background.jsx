@@ -16,6 +16,9 @@ const POKER_CHIPS = [
   { value: '∞', left: '46%', top: '82%', dur: '7s',   delay: '4s'   },
   { value: 1,   left: '31%', top: '15%', dur: '5.3s', delay: '3.8s' },
   { value: 3,   left: '68%', top: '88%', dur: '6.2s', delay: '0.6s' },
+  { value: 5,   left: '4%',  top: '74%', dur: '5.6s', delay: '1.8s' },
+  { value: 13,  left: '17%', top: '88%', dur: '6.4s', delay: '3s'   },
+  { value: 2,   left: '27%', top: '78%', dur: '5s',   delay: '0.7s' },
 ]
 
 const SPRINT_CARDS = [
