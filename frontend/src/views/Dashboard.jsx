@@ -28,9 +28,7 @@ export default function Dashboard({ onSelectTool }) {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1 className={styles.logo}>
-          🃏 <span className={styles.logoPocket}>Pocket</span><span className={styles.logoScrum}>Scrum</span>
-        </h1>
+        <img src="/logo.png" alt="PocketScrum" className={styles.logo} />
         <p className={styles.subtitle}>Choisissez un outil Scrum pour commencer</p>
       </header>
 

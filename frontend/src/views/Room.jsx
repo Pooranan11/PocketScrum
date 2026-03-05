@@ -222,7 +222,7 @@ export default function Room({ session, onLeave, onVelocity }) {
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerLeft}>
-          <span className={styles.logoSmall}>🃏 PocketScrum</span>
+          <img src="/logo.png" alt="PocketScrum" className={styles.logoSmall} />
           <span className={styles.badge}>Room <strong>{room_code}</strong></span>
           {is_scrum_master && <span className={styles.smBadge}>Scrum Master</span>}
         </div>
