@@ -3,6 +3,7 @@ import Dashboard from './views/Dashboard.jsx'
 import Home from './views/Home.jsx'
 import Room from './views/Room.jsx'
 import Velocity from './views/Velocity.jsx'
+import Footer from './components/Footer.jsx'
 import './App.css'
 
 const Visualisation = lazy(() => import('./views/Visualisation.jsx'))
@@ -53,6 +54,7 @@ export default function App() {
             <Velocity onBack={handleBackFromVelocity} onVisualize={handleVisualize} />
           </div>
         )}
+        <Footer />
       </>
     )
   }
@@ -60,9 +62,12 @@ export default function App() {
   // ── Cas sans session : navigation normale ──
   if (view === 'velocity') {
     return (
-      <div className="app" style={{ justifyContent: 'flex-start' }}>
-        <Velocity onBack={handleBack} onVisualize={handleVisualize} />
-      </div>
+      <>
+        <div className="app" style={{ justifyContent: 'flex-start' }}>
+          <Velocity onBack={handleBack} onVisualize={handleVisualize} />
+        </div>
+        <Footer />
+      </>
     )
   }
 
@@ -75,21 +80,28 @@ export default function App() {
             initialData={vizData}
           />
         </div>
+        <Footer />
       </Suspense>
     )
   }
 
   if (view === 'game') {
     return (
-      <div className="app">
-        <Home onJoin={handleJoin} onBack={handleBack} />
-      </div>
+      <>
+        <div className="app">
+          <Home onJoin={handleJoin} onBack={handleBack} />
+        </div>
+        <Footer />
+      </>
     )
   }
 
   return (
-    <div className="app">
-      <Dashboard onSelectTool={handleSelectTool} />
-    </div>
+    <>
+      <div className="app">
+        <Dashboard onSelectTool={handleSelectTool} />
+      </div>
+      <Footer />
+    </>
   )
 }
