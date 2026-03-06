@@ -268,11 +268,10 @@ def test_vote_payload_strips_justification_whitespace():
     assert payload.justification == "mon avis"
 
 
-def test_vote_payload_truncates_justification_at_200():
-    """Une justification > 200 chars est tronquée silencieusement à 200."""
-    long_text = "A" * 300
-    payload = WSVotePayload(vote="8", justification=long_text)
-    assert len(payload.justification) == 200
+def test_vote_payload_rejects_justification_over_200():
+    """Une justification > 200 chars est rejetée par Pydantic (max_length=200)."""
+    with pytest.raises(ValidationError):
+        WSVotePayload(vote="8", justification="A" * 201)
 
 
 def test_vote_payload_empty_justification_ok():
