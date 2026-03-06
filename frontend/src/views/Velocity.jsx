@@ -519,8 +519,8 @@ export default function Velocity({ onBack, onVisualize }) {
       <div className={styles.topBar}>
         <button className={styles.back} onClick={onBack}>← Retour</button>
         <h1 className={styles.title}>
-          <span className={styles.titleWhite}>Vélocité</span>
-          <span className={styles.titleAccent}> &amp; Capacité</span>
+          <span className={styles.titleWhite}>Planificateur</span>
+          <span className={styles.titleAccent}> de sprint</span>
         </h1>
         <label className={styles.importBtn}>
           ↑ Importer Excel

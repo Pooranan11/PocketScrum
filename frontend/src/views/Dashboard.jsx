@@ -11,8 +11,15 @@ const tools = [
   {
     id: 'velocity',
     icon: '📈',
-    name: 'Vélocité & Capacité',
-    description: 'Calculez la vélocité de votre équipe et visualisez sa capacité sprint après sprint.',
+    name: 'Planificateur de sprint',
+    description: 'Planifiez la vélocité et la capacité de votre équipe sprint après sprint.',
+    available: true,
+  },
+  {
+    id: 'retro',
+    icon: '🔁',
+    name: 'Rétro sprint',
+    description: 'Évaluez les objectifs du sprint : statut atteint/partiel/non atteint et vélocité réelle vs planifiée.',
     available: true,
   },
   {

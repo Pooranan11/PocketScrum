@@ -8,6 +8,7 @@ import Background from './components/Background.jsx'
 import './App.css'
 
 const Visualisation = lazy(() => import('./views/Visualisation.jsx'))
+const Retro         = lazy(() => import('./views/Retro.jsx'))
 
 export default function App() {
   const [view,    setView]    = useState('dashboard') // 'dashboard' | 'game' | 'velocity' | 'visualisation'
@@ -17,6 +18,7 @@ export default function App() {
   const handleSelectTool = useCallback((tool) => {
     if (tool === 'planning-poker') setView('game')
     if (tool === 'velocity')       setView('velocity')
+    if (tool === 'retro')          setView('retro')
     if (tool === 'visualisation')  { setVizData(null); setView('visualisation') }
   }, [])
 
@@ -71,6 +73,18 @@ export default function App() {
         </div>
         <Footer />
       </>
+    )
+  }
+
+  if (view === 'retro') {
+    return (
+      <Suspense fallback={<div className="app" />}>
+        <Background />
+        <div className="app" style={{ justifyContent: 'flex-start' }}>
+          <Retro onBack={handleBack} />
+        </div>
+        <Footer />
+      </Suspense>
     )
   }
 

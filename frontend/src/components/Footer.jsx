@@ -4,7 +4,7 @@ export default function Footer() {
   const year = new Date().getFullYear()
   return (
     <footer className={styles.footer}>
-      <span>© {year} PocketScrum — Tous droits réservés</span>
+      <span>© {year} PocketScrum - Tous droits réservés</span>
     </footer>
   )
 }
