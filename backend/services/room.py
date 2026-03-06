@@ -23,6 +23,12 @@ logger = logging.getLogger(__name__)
 # Durée de vie des rooms : 24 heures (en secondes)
 ROOM_TTL: int = 86_400
 
+# Nombre maximum de joueurs par room
+MAX_PLAYERS: int = 20
+
+# Durée de vie des tickets WebSocket (usage unique, 30 secondes)
+WS_TICKET_TTL: int = 30
+
 # ---------------------------------------------------------------------------
 # Fonctions de construction des clés Redis (templates stricts)
 # Les codes room sont validés en amont par Pydantic avant d'arriver ici.
@@ -58,6 +64,11 @@ def room_channel(code: str) -> str:
     return f"room:{code}:channel"
 
 
+def _ws_ticket_key(ticket: str) -> str:
+    """Clé Redis d'un ticket WebSocket à usage unique."""
+    return f"ws_ticket:{ticket}"
+
+
 # ---------------------------------------------------------------------------
 # Génération du code room
 # ---------------------------------------------------------------------------
@@ -78,10 +89,14 @@ async def create_room(redis: Redis, scrum_master_id: str, scrum_master_name: str
     Effectue jusqu'à 10 tentatives pour trouver un code libre.
     Retourne le code de la room créée.
     """
+    # Réservation atomique du code via HSETNX :
+    # HSETNX retourne 1 si le champ a été créé (code libre), 0 sinon (déjà pris).
+    # Cela élimine la race condition check-then-set entre deux créations simultanées.
     code = ""
     for _ in range(10):
         candidate = _generate_code()
-        if not await redis.exists(_room_key(candidate)):
+        reserved = await redis.hsetnx(_room_key(candidate), "scrum_master_id", scrum_master_id)
+        if reserved:
             code = candidate
             break
 
@@ -89,17 +104,9 @@ async def create_room(redis: Redis, scrum_master_id: str, scrum_master_name: str
         # Cas extrêmement improbable (26^4 = 456 976 combinaisons possibles)
         raise RuntimeError("Impossible de générer un code room unique après 10 tentatives.")
 
-    # Données de la room
-    room_data = {
-        "scrum_master_id": scrum_master_id,
-        "state": "voting",
-        "round": "1",
-        "task_name": "",
-    }
-
-    # Écriture atomique via pipeline — TTL appliqué sur chaque clé
+    # Complétion des données de la room (scrum_master_id déjà positionné par HSETNX)
     async with redis.pipeline() as pipe:
-        pipe.hset(_room_key(code), mapping=room_data)
+        pipe.hset(_room_key(code), mapping={"state": "voting", "round": "1", "task_name": ""})
         pipe.expire(_room_key(code), ROOM_TTL)
         pipe.hset(_players_key(code), scrum_master_id, scrum_master_name)
         pipe.expire(_players_key(code), ROOM_TTL)
@@ -149,6 +156,12 @@ async def join_room(redis: Redis, code: str, player_id: str, player_name: str, r
         logger.warning("Tentative de rejoindre la room inexistante : %s", code)
         return False
 
+    # Vérification de la limite de joueurs
+    current_players = await get_players(redis, code)
+    if len(current_players) >= MAX_PLAYERS:
+        logger.warning("Limite de joueurs (%d) atteinte dans la room %s.", MAX_PLAYERS, code)
+        return False
+
     # Ajout du joueur + prolongation du TTL de la room
     async with redis.pipeline() as pipe:
         pipe.hset(_players_key(code), player_id, player_name)
@@ -193,8 +206,14 @@ async def remove_player(redis: Redis, code: str, player_id: str) -> Optional[str
             )
             return new_sm
         else:
-            # Plus personne dans la room : suppression anticipée
-            await redis.delete(_room_key(code), _players_key(code), _votes_key(code))
+            # Plus personne dans la room : suppression de toutes les clés
+            await redis.delete(
+                _room_key(code),
+                _players_key(code),
+                _votes_key(code),
+                _justifications_key(code),
+                _roles_key(code),
+            )
             logger.info("Room %s supprimée (aucun joueur restant).", code)
 
     return None
@@ -324,6 +343,36 @@ async def start_new_round(redis: Redis, code: str, player_id: str, task_name: st
 
     logger.info("Nouveau round %d démarré dans la room %s.", new_round, code)
     return new_round
+
+
+async def create_ws_ticket(redis: Redis, room_code: str, player_id: str) -> str:
+    """
+    Génère un ticket WebSocket à usage unique valable 30 secondes.
+
+    Le ticket lie room_code + player_id et est stocké en Redis.
+    Il doit être consommé une seule fois via consume_ws_ticket().
+    """
+    ticket = secrets.token_urlsafe(32)
+    await redis.set(_ws_ticket_key(ticket), f"{room_code}:{player_id}", ex=WS_TICKET_TTL)
+    logger.debug("Ticket WS créé pour player %s dans room %s.", player_id, room_code)
+    return ticket
+
+
+async def consume_ws_ticket(redis: Redis, ticket: str) -> Optional[tuple[str, str]]:
+    """
+    Consomme un ticket WebSocket de façon atomique (GETDEL).
+
+    Retourne (room_code, player_id) si valide, None sinon.
+    Le ticket est supprimé immédiatement — il ne peut être utilisé qu'une seule fois.
+    """
+    value = await redis.getdel(_ws_ticket_key(ticket))
+    if not value:
+        return None
+    # room_code est [A-Z]{4} sans ':', player_id est token_urlsafe sans ':'
+    parts = value.split(":", 1)
+    if len(parts) != 2:
+        return None
+    return parts[0], parts[1]
 
 
 async def build_room_state(redis: Redis, code: str) -> Optional[dict]:

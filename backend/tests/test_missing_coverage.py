@@ -329,6 +329,16 @@ def _create_room(client, name: str = "Alice", role: str = "dev") -> dict:
     return resp.json()
 
 
+def _get_ws_url(client, room_code: str, player_id: str, token: str) -> str:
+    resp = client.post(
+        f"/api/rooms/{room_code}/ws-ticket",
+        json={"player_id": player_id},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 200
+    return f"/ws/{room_code}?player_id={player_id}&ticket={resp.json()['ticket']}"
+
+
 def _recv_until(ws, expected_type: str, max_msgs: int = 5) -> dict | None:
     for _ in range(max_msgs):
         msg = ws.receive_json()
@@ -340,9 +350,8 @@ def _recv_until(ws, expected_type: str, max_msgs: int = 5) -> dict | None:
 def test_ws_sm_set_task_name(client):
     """Le SM peut mettre à jour le nom de la tâche via WS."""
     data = _create_room(client)
-    with client.websocket_connect(
-        f"/ws/{data['room_code']}?player_id={data['player_id']}&token={data['token']}"
-    ) as ws:
+    ws_url = _get_ws_url(client, data["room_code"], data["player_id"], data["token"])
+    with client.websocket_connect(ws_url) as ws:
         ws.receive_json()  # room_state
         ws.send_json({"type": "set_task_name", "payload": {"task_name": "US-99"}})
         msg = _recv_until(ws, "task_name_updated")
@@ -358,9 +367,8 @@ def test_ws_non_sm_set_task_name_receives_error(client):
         json={"room_code": code, "player_name": "Bob", "role": "qa"},
     ).json()
 
-    with client.websocket_connect(
-        f"/ws/{code}?player_id={join['player_id']}&token={join['token']}"
-    ) as ws:
+    ws_url = _get_ws_url(client, code, join["player_id"], join["token"])
+    with client.websocket_connect(ws_url) as ws:
         ws.receive_json()  # room_state
         ws.send_json({"type": "set_task_name", "payload": {"task_name": "Hack"}})
         msg = _recv_until(ws, "error")
@@ -371,9 +379,8 @@ def test_ws_non_sm_set_task_name_receives_error(client):
 def test_ws_new_round_with_task_name(client):
     """new_round avec task_name stocke bien le nouveau nom."""
     data = _create_room(client)
-    with client.websocket_connect(
-        f"/ws/{data['room_code']}?player_id={data['player_id']}&token={data['token']}"
-    ) as ws:
+    ws_url = _get_ws_url(client, data["room_code"], data["player_id"], data["token"])
+    with client.websocket_connect(ws_url) as ws:
         ws.receive_json()  # room_state
         ws.send_json({"type": "votes_reveal"})
         ws.receive_json()  # votes_reveal
@@ -386,9 +393,8 @@ def test_ws_new_round_with_task_name(client):
 def test_ws_vote_with_justification_visible_after_reveal(client):
     """La justification d'un vote est retournée lors de la révélation."""
     data = _create_room(client)
-    with client.websocket_connect(
-        f"/ws/{data['room_code']}?player_id={data['player_id']}&token={data['token']}"
-    ) as ws:
+    ws_url = _get_ws_url(client, data["room_code"], data["player_id"], data["token"])
+    with client.websocket_connect(ws_url) as ws:
         ws.receive_json()  # room_state
         ws.send_json({"type": "vote_cast", "payload": {"vote": "5", "justification": "Facile"}})
         ws.receive_json()  # vote_cast broadcast

@@ -5,7 +5,7 @@ Utilise pydantic-settings pour valider et typer la config au démarrage.
 import json
 from typing import Any, List, Tuple, Type
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import (
     BaseSettings,
     EnvSettingsSource,
@@ -71,6 +71,18 @@ class Settings(BaseSettings):
             dotenv_settings,
             *kwargs.values(),
         )
+
+    @model_validator(mode="after")
+    def check_secret_key_in_production(self) -> "Settings":
+        if (
+            self.APP_ENV == "production"
+            and self.SECRET_KEY == "changez-moi-en-production"
+        ):
+            raise ValueError(
+                "SECRET_KEY doit être redéfini en production. "
+                "Définissez la variable d'environnement SECRET_KEY dans votre .env."
+            )
+        return self
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

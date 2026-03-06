@@ -42,12 +42,15 @@ export default function Retro({ onBack }) {
   // ── Chargement depuis localStorage ──
   function loadFromLS() {
     try {
-      const data = JSON.parse(localStorage.getItem(VELOCITY_KEY) ?? 'null')
-      if (!data) return alert('Aucune donnée de planificateur trouvée. Lance d\'abord un sprint dans le Planificateur.')
+      const raw = localStorage.getItem(VELOCITY_KEY)
+      if (!raw) return alert('Aucune donnée de planificateur trouvée. Lance d\'abord un sprint dans le Planificateur.')
+      const data = JSON.parse(raw)
+      if (!data || typeof data !== 'object') return alert('Format de données invalide dans le stockage local.')
+      if (!Array.isArray(data.tasks)) return alert('Structure de données inattendue : le champ "tasks" est absent ou invalide.')
       setSprint(data.sprint ?? { name: '', startDate: '', endDate: '' })
       setTasks(tasksFromVelocityData(data))
       setLoaded(true)
-    } catch { /* ignore */ }
+    } catch { alert('Erreur lors de la lecture des données du planificateur.') }
   }
 
   // ── Import Excel ──

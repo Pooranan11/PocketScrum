@@ -27,7 +27,6 @@ from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from redis.asyncio import Redis
 
 from core.redis import get_redis
-from core.security import verify_session_token
 from models.schemas import (
     ROOM_CODE_REGEX,
     WSIncomingMessage,
@@ -37,6 +36,7 @@ from models.schemas import (
 from services.room import (
     build_room_state,
     cast_vote,
+    consume_ws_ticket,
     get_player_roles,
     get_players,
     remove_player,
@@ -238,13 +238,14 @@ async def websocket_endpoint(
     websocket: WebSocket,
     room_code: str,
     player_id: str = Query(..., description="Identifiant unique du joueur"),
-    token: str = Query(..., description="Token de session HMAC"),
+    ticket: str = Query(..., description="Ticket WebSocket à usage unique (30s)"),
     redis: Redis = Depends(get_redis),
 ) -> None:
     """
     Point d'entrée WebSocket principal.
 
-    Authentification par token HMAC avant acceptation de la connexion.
+    Authentification par ticket à usage unique (obtenu via POST /api/rooms/{code}/ws-ticket).
+    Le ticket remplace le token HMAC dans l'URL pour éviter son exposition dans les logs.
     """
     # --- Validation du format du code room (avant toute logique) ---
     if not ROOM_CODE_REGEX.match(room_code.upper()):
@@ -254,13 +255,25 @@ async def websocket_endpoint(
 
     room_code = room_code.upper()
 
-    # --- Validation du token de session ---
-    if not verify_session_token(room_code, player_id, token):
+    # --- Consommation atomique du ticket (usage unique) ---
+    result = await consume_ws_ticket(redis, ticket)
+    if result is None:
         logger.warning(
-            "Token de session invalide pour player_id=%s, room=%s.",
+            "Ticket WS invalide ou expiré pour player_id=%s, room=%s.",
             player_id, room_code,
         )
-        await websocket.close(code=4001, reason="Token de session invalide.")
+        await websocket.close(code=4001, reason="Ticket WebSocket invalide ou expiré.")
+        return
+
+    room_code_from_ticket, player_id_from_ticket = result
+
+    # --- Vérification de la cohérence ticket / paramètres URL ---
+    if room_code_from_ticket != room_code or player_id_from_ticket != player_id:
+        logger.warning(
+            "Incohérence ticket/URL pour player_id=%s, room=%s.",
+            player_id, room_code,
+        )
+        await websocket.close(code=4001, reason="Ticket invalide.")
         return
 
     # --- Vérification de l'existence de la room ---
@@ -402,15 +415,18 @@ async def websocket_endpoint(
     task_pubsub = asyncio.create_task(pubsub_to_ws())
     task_ws = asyncio.create_task(ws_to_handler())
 
+    # Sentinel initialisé avant le try : garantit que `pending` est toujours défini
+    # même si asyncio.wait() lève une exception avant d'avoir pu assigner la variable.
+    pending: set = {task_pubsub, task_ws}
     try:
         # On attend que l'une des deux tâches se termine (déconnexion ou erreur)
-        done, pending = await asyncio.wait(
+        _, pending = await asyncio.wait(
             {task_pubsub, task_ws},
             return_when=asyncio.FIRST_COMPLETED,
         )
     finally:
         # Annulation des tâches encore actives
-        for task in pending if "pending" in dir() else [task_pubsub, task_ws]:
+        for task in pending:
             task.cancel()
             try:
                 await task

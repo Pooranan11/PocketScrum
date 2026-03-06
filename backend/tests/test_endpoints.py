@@ -32,6 +32,18 @@ def _create_room(client: TestClient, name: str = "Alice", role: str = "dev") -> 
     return resp.json()
 
 
+def _get_ws_url(client: TestClient, room_code: str, player_id: str, token: str) -> str:
+    """Échange un token contre un ticket WS et retourne l'URL de connexion."""
+    resp = client.post(
+        f"/api/rooms/{room_code}/ws-ticket",
+        json={"player_id": player_id},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 200, f"ws-ticket failed: {resp.text}"
+    ticket = resp.json()["ticket"]
+    return f"/ws/{room_code}?player_id={player_id}&ticket={ticket}"
+
+
 def _recv_until(ws, expected_type: str, max_msgs: int = 5) -> dict | None:
     """Consomme des messages WS jusqu'à trouver le type attendu."""
     for _ in range(max_msgs):
@@ -144,16 +156,15 @@ def test_join_room_invalid_player_name_returns_422(test_client: TestClient):
 
 
 def test_join_room_token_is_valid_for_ws(test_client: TestClient):
-    """Le token renvoyé par join permet bien de se connecter en WS."""
+    """Le token renvoyé par join permet bien de se connecter en WS via ticket."""
     code = _create_room(test_client)["room_code"]
     join = test_client.post(
         f"/api/rooms/{code}/join",
         json={"room_code": code, "player_name": "Bob", "role": "qa"},
     ).json()
 
-    with test_client.websocket_connect(
-        f"/ws/{code}?player_id={join['player_id']}&token={join['token']}"
-    ) as ws:
+    ws_url = _get_ws_url(test_client, code, join["player_id"], join["token"])
+    with test_client.websocket_connect(ws_url) as ws:
         msg = ws.receive_json()
         assert msg["type"] == "room_state"
 
@@ -162,28 +173,68 @@ def test_join_room_token_is_valid_for_ws(test_client: TestClient):
 # 3. WebSocket /ws/{room_code}
 # ---------------------------------------------------------------------------
 
-def test_ws_invalid_token_rejected(test_client: TestClient):
-    """Une connexion WS avec token invalide est rejetée."""
+def test_ws_invalid_ticket_rejected(test_client: TestClient):
+    """Une connexion WS avec ticket forgé est rejetée."""
     data = _create_room(test_client)
     rejected = False
     try:
         with test_client.websocket_connect(
-            f"/ws/{data['room_code']}?player_id={data['player_id']}&token=forged_token"
+            f"/ws/{data['room_code']}?player_id={data['player_id']}&ticket=forged_ticket"
         ):
             pass
     except Exception:
         rejected = True
-    assert rejected, "Un token invalide doit fermer la connexion."
+    assert rejected, "Un ticket invalide doit fermer la connexion."
 
 
-def test_ws_nonexistent_room_rejected(test_client: TestClient):
-    """Une connexion WS vers une room inexistante est rejetée."""
+def test_ws_ticket_is_single_use(test_client: TestClient):
+    """Un ticket WS ne peut être utilisé qu'une seule fois."""
+    data = _create_room(test_client)
+    ws_url = _get_ws_url(test_client, data["room_code"], data["player_id"], data["token"])
+
+    # Première connexion : OK
+    with test_client.websocket_connect(ws_url) as ws:
+        ws.receive_json()  # room_state
+
+    # Deuxième connexion avec le même ticket : rejetée
+    rejected = False
+    try:
+        with test_client.websocket_connect(ws_url):
+            pass
+    except Exception:
+        rejected = True
+    assert rejected, "Un ticket déjà consommé doit être rejeté."
+
+
+def test_ws_ticket_endpoint_invalid_token(test_client: TestClient):
+    """ws-ticket retourne 403 si le token HMAC est invalide."""
+    data = _create_room(test_client)
+    resp = test_client.post(
+        f"/api/rooms/{data['room_code']}/ws-ticket",
+        json={"player_id": data["player_id"]},
+        headers={"Authorization": "Bearer fake_token"},
+    )
+    assert resp.status_code == 403
+
+
+def test_ws_ticket_endpoint_nonexistent_room(test_client: TestClient):
+    """ws-ticket retourne 404 si la room n'existe pas."""
     from core.security import generate_player_id, generate_session_token
     pid = generate_player_id()
     tok = generate_session_token("ZZZZ", pid)
+    resp = test_client.post(
+        "/api/rooms/ZZZZ/ws-ticket",
+        json={"player_id": pid},
+        headers={"Authorization": f"Bearer {tok}"},
+    )
+    assert resp.status_code == 404
+
+
+def test_ws_nonexistent_room_rejected(test_client: TestClient):
+    """Une connexion WS vers une room inexistante est rejetée (ticket forgé)."""
     rejected = False
     try:
-        with test_client.websocket_connect(f"/ws/ZZZZ?player_id={pid}&token={tok}"):
+        with test_client.websocket_connect("/ws/ZZZZ?player_id=x&ticket=fake"):
             pass
     except Exception:
         rejected = True
@@ -193,9 +244,8 @@ def test_ws_nonexistent_room_rejected(test_client: TestClient):
 def test_ws_first_message_is_room_state(test_client: TestClient):
     """Le premier message reçu après connexion est room_state."""
     data = _create_room(test_client)
-    with test_client.websocket_connect(
-        f"/ws/{data['room_code']}?player_id={data['player_id']}&token={data['token']}"
-    ) as ws:
+    ws_url = _get_ws_url(test_client, data["room_code"], data["player_id"], data["token"])
+    with test_client.websocket_connect(ws_url) as ws:
         msg = ws.receive_json()
         assert msg["type"] == "room_state"
         state = msg["payload"]
@@ -208,9 +258,8 @@ def test_ws_first_message_is_room_state(test_client: TestClient):
 def test_ws_ping_returns_pong(test_client: TestClient):
     """Le serveur répond pong à un ping."""
     data = _create_room(test_client)
-    with test_client.websocket_connect(
-        f"/ws/{data['room_code']}?player_id={data['player_id']}&token={data['token']}"
-    ) as ws:
+    ws_url = _get_ws_url(test_client, data["room_code"], data["player_id"], data["token"])
+    with test_client.websocket_connect(ws_url) as ws:
         ws.receive_json()  # room_state
         ws.send_json({"type": "ping"})
         msg = ws.receive_json()
@@ -220,9 +269,8 @@ def test_ws_ping_returns_pong(test_client: TestClient):
 def test_ws_vote_cast_broadcast(test_client: TestClient):
     """Un vote valide déclenche un broadcast vote_cast."""
     data = _create_room(test_client)
-    with test_client.websocket_connect(
-        f"/ws/{data['room_code']}?player_id={data['player_id']}&token={data['token']}"
-    ) as ws:
+    ws_url = _get_ws_url(test_client, data["room_code"], data["player_id"], data["token"])
+    with test_client.websocket_connect(ws_url) as ws:
         ws.receive_json()  # room_state
         ws.send_json({"type": "vote_cast", "payload": {"vote": "5"}})
         msg = ws.receive_json()
@@ -234,9 +282,8 @@ def test_ws_vote_cast_broadcast(test_client: TestClient):
 def test_ws_sm_reveal_votes(test_client: TestClient):
     """Le Scrum Master peut révéler les votes."""
     data = _create_room(test_client)
-    with test_client.websocket_connect(
-        f"/ws/{data['room_code']}?player_id={data['player_id']}&token={data['token']}"
-    ) as ws:
+    ws_url = _get_ws_url(test_client, data["room_code"], data["player_id"], data["token"])
+    with test_client.websocket_connect(ws_url) as ws:
         ws.receive_json()  # room_state
         ws.send_json({"type": "votes_reveal"})
         msg = ws.receive_json()
@@ -247,9 +294,8 @@ def test_ws_sm_reveal_votes(test_client: TestClient):
 def test_ws_sm_start_new_round(test_client: TestClient):
     """Le Scrum Master peut lancer un nouveau round après révélation."""
     data = _create_room(test_client)
-    with test_client.websocket_connect(
-        f"/ws/{data['room_code']}?player_id={data['player_id']}&token={data['token']}"
-    ) as ws:
+    ws_url = _get_ws_url(test_client, data["room_code"], data["player_id"], data["token"])
+    with test_client.websocket_connect(ws_url) as ws:
         ws.receive_json()  # room_state
         ws.send_json({"type": "votes_reveal"})
         ws.receive_json()  # votes_reveal
@@ -267,9 +313,8 @@ def test_ws_non_sm_reveal_receives_error(test_client: TestClient):
         json={"room_code": code, "player_name": "Bob", "role": "qa"},
     ).json()
 
-    with test_client.websocket_connect(
-        f"/ws/{code}?player_id={join['player_id']}&token={join['token']}"
-    ) as ws:
+    ws_url = _get_ws_url(test_client, code, join["player_id"], join["token"])
+    with test_client.websocket_connect(ws_url) as ws:
         ws.receive_json()  # room_state
         ws.send_json({"type": "votes_reveal"})
         msg = _recv_until(ws, "error")
@@ -280,11 +325,10 @@ def test_ws_non_sm_reveal_receives_error(test_client: TestClient):
 def test_ws_invalid_json_closes_connection(test_client: TestClient):
     """Un payload non-JSON ferme la connexion WebSocket."""
     data = _create_room(test_client)
+    ws_url = _get_ws_url(test_client, data["room_code"], data["player_id"], data["token"])
     closed = False
     try:
-        with test_client.websocket_connect(
-            f"/ws/{data['room_code']}?player_id={data['player_id']}&token={data['token']}"
-        ) as ws:
+        with test_client.websocket_connect(ws_url) as ws:
             ws.receive_json()  # room_state
             ws.send_text("not valid json {{{")
             ws.receive_json()  # devrait lever une exception
@@ -296,11 +340,10 @@ def test_ws_invalid_json_closes_connection(test_client: TestClient):
 def test_ws_invalid_vote_card_closes_connection(test_client: TestClient):
     """Un vote avec une carte non-Fibonacci ferme la connexion."""
     data = _create_room(test_client)
+    ws_url = _get_ws_url(test_client, data["room_code"], data["player_id"], data["token"])
     closed = False
     try:
-        with test_client.websocket_connect(
-            f"/ws/{data['room_code']}?player_id={data['player_id']}&token={data['token']}"
-        ) as ws:
+        with test_client.websocket_connect(ws_url) as ws:
             ws.receive_json()  # room_state
             ws.send_json({"type": "vote_cast", "payload": {"vote": "4"}})
             ws.receive_json()

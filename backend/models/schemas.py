@@ -154,6 +154,11 @@ class WSVotePayload(BaseModel):
         return v.strip()[:200]
 
 
+class WsTicketRequest(BaseModel):
+    """Corps de POST /api/rooms/{code}/ws-ticket."""
+    player_id: str = Field(..., min_length=1, max_length=100)
+
+
 class WSNewRoundPayload(BaseModel):
     """Payload attendu pour l'événement new_round."""
     task_name: str = Field(default="", max_length=60)

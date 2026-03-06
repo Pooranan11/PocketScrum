@@ -26,7 +26,7 @@ from models.schemas import (
     WSVotePayload,
 )
 from routers.ws import _SlidingWindowRateLimiter
-from services.room import create_room, join_room, reveal_votes
+from services.room import create_room, create_ws_ticket, consume_ws_ticket, join_room, reveal_votes
 
 
 # ---------------------------------------------------------------------------
@@ -208,27 +208,20 @@ def test_ws_rate_limiter_resets_after_window(monkeypatch):
 # 4. Connexion à une room inexistante via WebSocket
 # ---------------------------------------------------------------------------
 
-def test_ws_rejects_nonexistent_room(client: TestClient):
+def test_ws_rejects_invalid_ticket(client: TestClient):
     """
-    Une connexion WebSocket vers une room inexistante doit être rejetée.
-    Vérifié indirectement : le serveur ferme la connexion avant accept()
-    lorsque la room n'existe pas, ce qui provoque une exception côté client.
+    Une connexion WebSocket avec un ticket forgé doit être rejetée.
     """
-    player_id = generate_player_id()
-    token = generate_session_token("ZZZZ", player_id)
-
-    # Le serveur doit lever une WebSocketDisconnect ou fermer la connexion
     connection_rejected = False
     try:
         with client.websocket_connect(
-            f"/ws/ZZZZ?player_id={player_id}&token={token}"
+            "/ws/ZZZZ?player_id=some_player&ticket=forged_ticket_abc123"
         ) as ws:
-            # Si la connexion s'ouvre, on essaie de lire → doit lever une exception
             ws.receive_json()
     except Exception:
         connection_rejected = True
 
-    assert connection_rejected, "La connexion à une room inexistante doit être rejetée."
+    assert connection_rejected, "Un ticket forgé doit être rejeté."
 
 
 # ---------------------------------------------------------------------------
@@ -388,6 +381,63 @@ def test_security_headers_present(client: TestClient):
 # ---------------------------------------------------------------------------
 # 9. Rate limiting REST (via slowapi)
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# 10. Tickets WebSocket (usage unique, anti-replay)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_ws_ticket_is_single_use(redis: FakeRedis):
+    """Un ticket consommé ne peut plus être réutilisé."""
+    code = await create_room(redis, "sm-001", "Alice")
+    ticket = await create_ws_ticket(redis, code, "sm-001")
+
+    result1 = await consume_ws_ticket(redis, ticket)
+    assert result1 is not None
+
+    result2 = await consume_ws_ticket(redis, ticket)
+    assert result2 is None, "Le ticket ne doit être utilisable qu'une seule fois."
+
+
+@pytest.mark.asyncio
+async def test_ws_ticket_contains_correct_data(redis: FakeRedis):
+    """Le ticket retourne les bonnes informations (room_code, player_id)."""
+    code = await create_room(redis, "sm-001", "Alice")
+    ticket = await create_ws_ticket(redis, code, "sm-001")
+
+    result = await consume_ws_ticket(redis, ticket)
+    assert result is not None
+    room_code_from_ticket, player_id_from_ticket = result
+    assert room_code_from_ticket == code
+    assert player_id_from_ticket == "sm-001"
+
+
+@pytest.mark.asyncio
+async def test_ws_forged_ticket_returns_none(redis: FakeRedis):
+    """Un ticket forgé manuellement retourne None."""
+    result = await consume_ws_ticket(redis, "forged_ticket_xyz")
+    assert result is None
+
+
+# ---------------------------------------------------------------------------
+# 11. Limite de joueurs par room
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_join_room_respects_player_limit(redis: FakeRedis):
+    """La room ne peut pas dépasser MAX_PLAYERS joueurs."""
+    from services.room import MAX_PLAYERS
+    code = await create_room(redis, "sm-001", "Alice")
+
+    # Remplir jusqu'à la limite (SM déjà compté = 1 joueur)
+    for i in range(MAX_PLAYERS - 1):
+        success = await join_room(redis, code, f"player-{i}", f"Joueur {i}")
+        assert success is True, f"Le joueur {i} devrait pouvoir rejoindre"
+
+    # Le joueur suivant dépasse la limite
+    success = await join_room(redis, code, "player-overflow", "Trop")
+    assert success is False, "La limite de joueurs doit être respectée."
+
 
 def test_create_room_rate_limit(client: TestClient):
     """

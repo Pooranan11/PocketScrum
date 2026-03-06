@@ -27,3 +27,17 @@ export async function joinRoom(roomCode, playerName, role) {
   }
   return res.json() // { room_code, player_id, token, is_scrum_master, role }
 }
+
+export async function getWsTicket(roomCode, playerId, token) {
+  const res = await fetch(`${BASE}/rooms/${roomCode}/ws-ticket`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ player_id: playerId }),
+  })
+  if (!res.ok) throw new Error('Impossible d\'obtenir un ticket WebSocket')
+  const data = await res.json()
+  return data.ticket
+}

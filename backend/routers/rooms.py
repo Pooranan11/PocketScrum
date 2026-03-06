@@ -15,15 +15,16 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from core.redis import get_redis
-from core.security import generate_player_id, generate_session_token
+from core.security import generate_player_id, generate_session_token, verify_session_token
 from models.schemas import (
     CreateRoomRequest,
     CreateRoomResponse,
     JoinRoomRequest,
     JoinRoomResponse,
+    WsTicketRequest,
     _validate_room_code,
 )
-from services.room import create_room, join_room
+from services.room import create_room, create_ws_ticket, join_room, room_exists
 
 logger = logging.getLogger(__name__)
 
@@ -115,3 +116,46 @@ async def join_room_endpoint(
         is_scrum_master=False,
         role=body.role,
     )
+
+
+@router.post(
+    "/rooms/{room_code}/ws-ticket",
+    status_code=status.HTTP_200_OK,
+    summary="Obtenir un ticket WebSocket à usage unique",
+)
+@limiter.limit("30/minute")
+async def get_ws_ticket_endpoint(
+    request: Request,
+    room_code: str,
+    body: WsTicketRequest,
+    redis: Redis = Depends(get_redis),
+) -> dict:
+    """
+    Échange un token de session HMAC contre un ticket WebSocket à usage unique (30s).
+
+    Le token doit être transmis dans le header Authorization: Bearer <token>.
+    Le ticket retourné remplace le token dans l'URL WebSocket, évitant ainsi
+    son exposition dans les logs serveur et l'historique du navigateur.
+    """
+    try:
+        validated_code = _validate_room_code(room_code)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Code room invalide.")
+
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Token d'authentification manquant.")
+    token = auth[7:].strip()
+
+    if not verify_session_token(validated_code, body.player_id, token):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Token de session invalide.")
+
+    if not await room_exists(redis, validated_code):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Room '{validated_code}' introuvable ou expirée.",
+        )
+
+    ticket = await create_ws_ticket(redis, validated_code, body.player_id)
+    logger.info("Ticket WS émis pour player %s dans room %s.", body.player_id, validated_code)
+    return {"ticket": ticket}
