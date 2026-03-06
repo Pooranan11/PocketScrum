@@ -51,7 +51,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         if settings.APP_ENV == "production":
-            csp = "default-src 'none'; connect-src 'self'; frame-ancestors 'none'"
+            csp = "default-src 'none'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'"
         else:
             csp = (
                 "default-src 'none'; "

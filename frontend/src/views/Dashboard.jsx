@@ -47,6 +47,8 @@ export default function Dashboard({ onSelectTool }) {
             onClick={() => tool.available && onSelectTool(tool.id)}
             disabled={!tool.available}
             aria-disabled={!tool.available}
+            data-umami-event="tool-select"
+            data-umami-event-tool={tool.id}
           >
             <div className={styles.iconContainer}>
               <span className={styles.icon}>{tool.icon}</span>
