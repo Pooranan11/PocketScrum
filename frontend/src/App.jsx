@@ -19,7 +19,7 @@ export default function App() {
     if (tool === 'planning-poker') setView('game')
     if (tool === 'velocity')       setView('velocity')
     if (tool === 'retro')          setView('retro')
-    if (tool === 'visualisation')  { setVizData(null); setView('visualisation') }
+    if (tool === 'visualisation')  setView('visualisation')
   }, [])
 
   const handleVisualize = useCallback((data) => {

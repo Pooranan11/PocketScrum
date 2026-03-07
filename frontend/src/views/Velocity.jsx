@@ -1,24 +1,8 @@
 import { useState, useEffect } from 'react'
 import styles from './Velocity.module.css'
+import { uid, fmtJ, fmtDate, parseFrDate } from '../utils.js'
 
 const STORAGE_KEY = 'pocketscrum_velocity'
-
-const uid = () => crypto.randomUUID()
-
-const fmtJ = n => `${parseFloat(n.toFixed(2))}j`
-
-const fmtDate = d => d
-  ? new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })
-  : '—'
-
-// Reconvertit DD/MM/YY (format export) en YYYY-MM-DD (format input date)
-const parseFrDate = s => {
-  if (!s || s === '—') return ''
-  const parts = String(s).split('/')
-  if (parts.length !== 3) return ''
-  const [d, m, y] = parts
-  return `20${y.padStart(2, '0')}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
-}
 
 const loadSaved = () => {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') }
