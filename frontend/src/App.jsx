@@ -1,4 +1,5 @@
 import { useState, useCallback, lazy, Suspense } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import Home          from './views/Home.jsx'
 import Room          from './views/Room.jsx'
 import Velocity      from './views/Velocity.jsx'
@@ -24,23 +25,29 @@ const VIEW_TO_TOOL = {
 }
 
 export default function App() {
-  const [view,    setView]    = useState('landing-planning-poker')
-  const [session, setSession] = useState(null)
-  const [vizData, setVizData] = useState(null)
+  const [searchParams] = useSearchParams()
+  const initialRoomCode = searchParams.get('room') ?? ''
 
-  // Barrel scroll → met à jour la landing en temps réel (sans session active)
+  const [view,           setView]           = useState(initialRoomCode ? 'game' : 'landing-planning-poker')
+  const [session,        setSession]        = useState(null)
+  const [vizData,        setVizData]        = useState(null)
+  const [barrelCollapsed, setBarrelCollapsed] = useState(() => window.innerWidth < 768)
+
+  // Barrel scroll → met à jour la landing en temps réel uniquement depuis les landing pages
   const handleToolChange = useCallback((tool) => {
-    setView(`landing-${tool}`)
+    setView(v => v.startsWith('landing-') ? `landing-${tool}` : v)
   }, [])
 
   // Clic sur la carte centrale = aller directement à l'outil
   const handleSelectTool = useCallback((tool) => {
-    if (tool !== 'planning-poker') setSession(null)
-    if (tool === 'planning-poker') setView('game')
-    if (tool === 'velocity')       setView('velocity')
-    if (tool === 'retro')          setView('retro')
-    if (tool === 'visualisation')  setView('visualisation')
-  }, [])
+    if (tool === 'planning-poker') { setView('game'); return }
+    // Session active : on change la vue sans jamais détruire la session
+    if (session) { setView(tool); return }
+    // Pas de session : navigation normale
+    if (tool === 'velocity')      setView('velocity')
+    if (tool === 'retro')         setView('retro')
+    if (tool === 'visualisation') setView('visualisation')
+  }, [session])
 
   // Bouton "Commencer" sur la landing = idem
   const handleStart = useCallback((tool) => {
@@ -78,9 +85,15 @@ export default function App() {
   return (
     <>
       <Background />
-      <ToolBarrel currentTool={currentTool} onSelect={handleSelectTool} onChange={handleToolChange} />
+      <ToolBarrel
+        currentTool={currentTool}
+        onSelect={handleSelectTool}
+        onChange={handleToolChange}
+        collapsed={barrelCollapsed}
+        onToggle={() => setBarrelCollapsed(c => !c)}
+      />
 
-      <div className="content">
+      <div className={`content${barrelCollapsed ? ' contentCollapsed' : ''}`}>
 
         {/* ── Landing pages ── */}
         {landingTool && (
@@ -105,12 +118,31 @@ export default function App() {
                 <Velocity onBack={handleBackFromVelocity} onVisualize={handleVisualize} />
               </div>
             )}
+
+            {view === 'retro' && (
+              <Suspense fallback={<div className="page" />}>
+                <div className="page pageTop">
+                  <Retro onBack={() => setView('game')} />
+                </div>
+              </Suspense>
+            )}
+
+            {view === 'visualisation' && (
+              <Suspense fallback={<div className="page" />}>
+                <div className="page pageTop">
+                  <Visualisation
+                    onBack={() => setView('velocity')}
+                    initialData={vizData}
+                  />
+                </div>
+              </Suspense>
+            )}
           </>
         ) : !landingTool ? (
           <>
             {view === 'game' && (
               <div className="page">
-                <Home onJoin={handleJoin} onBack={() => handleBack('planning-poker')} />
+                <Home onJoin={handleJoin} onBack={() => handleBack('planning-poker')} initialCode={initialRoomCode} />
               </div>
             )}
 

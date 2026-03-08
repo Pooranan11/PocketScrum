@@ -14,6 +14,37 @@
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
   z-index: 20;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebarCollapsed {
+  transform: translateX(-100%);
+}
+
+/* Toggle collapse button — sticks out to the right of the sidebar */
+.collapseBtn {
+  position: absolute;
+  right: -28px;
+  top: 1.4rem;
+  transform: none;
+  width: 28px;
+  height: 56px;
+  background: rgba(5, 8, 20, 0.82);
+  border: 1px solid rgba(99, 102, 241, 0.16);
+  border-left: none;
+  border-radius: 0 10px 10px 0;
+  color: #475569;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(22px);
+  transition: color 0.2s, background 0.2s;
+  z-index: 21;
+}
+.collapseBtn:hover {
+  color: #818cf8;
+  background: rgba(10, 14, 32, 0.95);
 }
 
 .logo {
@@ -148,12 +179,10 @@
 }
 
 .icon {
-  font-size: 1.4rem;
-  line-height: 1;
-}
-
-.cardCenter .icon {
-  font-size: 1.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #818cf8;
 }
 
 .cardContent {
@@ -220,6 +249,12 @@
 }
 
 /* ── Scroll indicator — fixed, just right of the sidebar ── */
+.scrollIndicatorHidden {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
 .scrollIndicator {
   position: fixed;
   left: 324px;

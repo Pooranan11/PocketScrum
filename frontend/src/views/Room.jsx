@@ -1,4 +1,6 @@
 import { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react'
+import { Share2, Copy, Check, X } from 'lucide-react'
+import QRCode from 'react-qr-code'
 import { useWebSocket } from '../useWebSocket.js'
 import styles from './Room.module.css'
 
@@ -52,16 +54,16 @@ function addToVelocityBoard(taskName, round, votes) {
 function computeSeatPosition(index, count) {
   const angle = Math.PI / 2 + (index / count) * 2 * Math.PI
   return {
-    left: `${50 + 40 * Math.cos(angle)}%`,
-    top:  `${50 + 34 * Math.sin(angle)}%`,
+    left: `${50 + 44 * Math.cos(angle)}%`,
+    top:  `${50 + 42 * Math.sin(angle)}%`,
   }
 }
 
 function getWrapperHeight(count) {
-  if (count <= 2) return 'min(240px, 44vw)'
-  if (count <= 4) return 'min(300px, 48vw)'
-  if (count <= 6) return 'min(360px, 52vw)'
-  return 'min(420px, 56vw)'
+  if (count <= 2) return 'min(300px, 52vw)'
+  if (count <= 4) return 'min(380px, 58vw)'
+  if (count <= 6) return 'min(460px, 64vw)'
+  return 'min(540px, 70vw)'
 }
 
 export default function Room({ session, onLeave, onVelocity }) {
@@ -75,8 +77,9 @@ export default function Room({ session, onLeave, onVelocity }) {
   const [log,       setLog]       = useState([])
   const [taskName,  setTaskName]  = useState('')
 
-  const roundRef    = useRef(round)
-  const taskNameRef = useRef(taskName)
+  const roundRef       = useRef(round)
+  const taskNameRef    = useRef(taskName)
+  const loggedRoundRef = useRef(null)   // anti-duplication : dernier round loggué dans velocity
   useEffect(() => { roundRef.current    = round    }, [round])
   useEffect(() => { taskNameRef.current = taskName }, [taskName])
 
@@ -84,6 +87,19 @@ export default function Room({ session, onLeave, onVelocity }) {
   const [pendingCard,   setPendingCard]   = useState(null)
   const [showVoteModal, setShowVoteModal] = useState(false)
   const [justification, setJustification] = useState('')
+
+  // Share modal
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [copied,         setCopied]         = useState(false)
+
+  const shareUrl = `${window.location.origin}/app?room=${room_code}`
+
+  function copyLink() {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   // Task name modal
   const [showTaskModal,  setShowTaskModal]  = useState(false)
@@ -146,7 +162,10 @@ export default function Room({ session, onLeave, onVelocity }) {
         setVotes(revealedVotes)
         setGameState('revealed')
         addLog('Votes révélés !')
-        if (is_scrum_master) addToVelocityBoard(taskNameRef.current, roundRef.current, revealedVotes)
+        if (is_scrum_master && loggedRoundRef.current !== roundRef.current) {
+          loggedRoundRef.current = roundRef.current
+          addToVelocityBoard(taskNameRef.current, roundRef.current, revealedVotes)
+        }
         break
       }
       case 'new_round':
@@ -159,6 +178,7 @@ export default function Room({ session, onLeave, onVelocity }) {
         setRound(msg.payload.round)
         setTaskName(msg.payload.task_name ?? '')
         setPlayers(prev => prev.map(p => ({ ...p, has_voted: false })))
+        loggedRoundRef.current = null  // réinitialise le guard pour le prochain round
         addLog(`Nouveau round #${msg.payload.round}`)
         break
       case 'task_name_updated':
@@ -228,8 +248,12 @@ export default function Room({ session, onLeave, onVelocity }) {
         </div>
         <div className={styles.headerRight}>
           <span className={styles.roundBadge}>Round #{round}</span>
+          <button className={styles.shareBtn} onClick={() => setShowShareModal(true)} title="Partager la room">
+            <Share2 size={14} strokeWidth={2} />
+            <span>Partager</span>
+          </button>
           {is_scrum_master && onVelocity && (
-            <button className={styles.velocityBtn} onClick={onVelocity}>📈 Vélocité</button>
+            <button className={styles.velocityBtn} onClick={onVelocity}>Vélocité</button>
           )}
           <button className={styles.leaveBtn} onClick={onLeave}>Quitter</button>
         </div>
@@ -358,6 +382,44 @@ export default function Room({ session, onLeave, onVelocity }) {
               <button className={styles.modalConfirm} onClick={() => confirmVote(true)}>Confirmer</button>
               <button className={styles.modalSkip}    onClick={() => confirmVote(false)}>Passer</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share modal */}
+      {showShareModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowShareModal(false)}>
+          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3>Partager la room</h3>
+              <button className={styles.modalClose} onClick={() => setShowShareModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className={styles.shareCode}>
+              <span className={styles.shareCodeLabel}>Code</span>
+              <span className={styles.shareCodeValue}>{room_code}</span>
+            </div>
+
+            <div className={styles.qrWrap}>
+              <QRCode
+                value={shareUrl}
+                size={180}
+                bgColor="transparent"
+                fgColor="#818cf8"
+                level="M"
+              />
+            </div>
+
+            <p className={styles.shareHint}>Scannez pour rejoindre directement</p>
+
+            <button className={styles.copyLinkBtn} onClick={copyLink}>
+              {copied
+                ? <><Check size={14} strokeWidth={2.5} /> Lien copié !</>
+                : <><Copy size={14} strokeWidth={2} /> Copier le lien magique</>
+              }
+            </button>
           </div>
         </div>
       )}

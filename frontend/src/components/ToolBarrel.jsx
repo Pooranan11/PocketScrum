@@ -1,28 +1,29 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { Layers, TrendingUp, RefreshCw, BarChart2, ChevronLeft, ChevronRight } from 'lucide-react'
 import styles from './ToolBarrel.module.css'
 
 const TOOLS = [
   {
     id: 'planning-poker',
-    icon: '🃏',
+    Icon: Layers,
     name: 'Planning Poker',
     description: 'Estimez vos user stories en équipe, en temps réel.',
   },
   {
     id: 'velocity',
-    icon: '📈',
+    Icon: TrendingUp,
     name: 'Planificateur de sprint',
     description: 'Planifiez la vélocité et la capacité de votre équipe sprint après sprint.',
   },
   {
     id: 'retro',
-    icon: '🔁',
+    Icon: RefreshCw,
     name: 'Rétro sprint',
     description: 'Évaluez les objectifs du sprint : statut atteint/partiel/non atteint.',
   },
   {
     id: 'visualisation',
-    icon: '📊',
+    Icon: BarChart2,
     name: 'Visualisation',
     description: 'Importez un export Excel pour visualiser la charge et la répartition des tâches.',
   },
@@ -36,7 +37,7 @@ const THROTTLE = 220  // ms between wheel events
 // Modulo toujours positif
 const mod = (n, m) => ((n % m) + m) % m
 
-export default function ToolBarrel({ currentTool, onSelect, onChange }) {
+export default function ToolBarrel({ currentTool, onSelect, onChange, collapsed, onToggle }) {
   const initIdx = Math.max(0, TOOLS.findIndex(t => t.id === currentTool))
   // rawIdx est un entier continu (non borné) — on n'utilise jamais de modulo sur lui
   const [rawIdx, setRawIdx] = useState(initIdx)
@@ -124,7 +125,7 @@ export default function ToolBarrel({ currentTool, onSelect, onChange }) {
 
   return (
     <>
-      <aside className={styles.sidebar}>
+      <aside className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : ''}`}>
         <img src="/logo.png" alt="PocketScrum" className={styles.logo} />
 
         <div className={styles.barrelWrap} ref={barrelRef}>
@@ -155,7 +156,11 @@ export default function ToolBarrel({ currentTool, onSelect, onChange }) {
                 <div className={styles.shimmer} />
 
                 <div className={styles.iconContainer}>
-                  <span className={styles.icon}>{tool.icon}</span>
+                  <tool.Icon
+                    size={isCenter ? 24 : 20}
+                    color="#818cf8"
+                    strokeWidth={1.5}
+                  />
                 </div>
 
                 <div className={styles.cardContent}>
@@ -171,10 +176,18 @@ export default function ToolBarrel({ currentTool, onSelect, onChange }) {
             )
           })}
         </div>
+        {/* Toggle button — sticks out to the right edge of sidebar */}
+        <button
+          className={styles.collapseBtn}
+          onClick={onToggle}
+          title={collapsed ? 'Ouvrir le menu' : 'Réduire le menu'}
+        >
+          {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
       </aside>
 
       {/* Scroll indicator — juste à droite de la colonne */}
-      <div className={styles.scrollIndicator}>
+      <div className={`${styles.scrollIndicator} ${collapsed ? styles.scrollIndicatorHidden : ''}`}>
         <button
           className={styles.arrowBtn}
           onClick={() => moveTo(rawIdx - 1)}

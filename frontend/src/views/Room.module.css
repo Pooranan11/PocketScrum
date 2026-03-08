@@ -72,6 +72,25 @@
   box-shadow: 0 0 16px rgba(99, 102, 241, .2);
 }
 
+.shareBtn {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  background: rgba(99, 102, 241, .08);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, .22);
+  padding: .32rem .75rem;
+  font-size: .78rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .2s, box-shadow .2s;
+}
+.shareBtn:hover {
+  background: rgba(99, 102, 241, .18);
+  box-shadow: 0 0 14px rgba(99, 102, 241, .18);
+}
+
 .leaveBtn {
   background: transparent;
   color: #64748b;
@@ -103,10 +122,10 @@
 /* ── Table ── */
 .pokerTable {
   position: absolute;
-  left: 20%;
-  right: 20%;
-  top: 18%;
-  bottom: 18%;
+  left: 22%;
+  right: 22%;
+  top: 22%;
+  bottom: 22%;
   background: radial-gradient(ellipse at 40% 38%, #1e293b, #0f172a);
   border-radius: 20px;
   border: 1px solid rgba(99, 102, 241, .2);
@@ -215,10 +234,10 @@
 /* ── Table center ── */
 .tableCenter {
   position: absolute;
-  left: 20%;
-  right: 20%;
-  top: 18%;
-  bottom: 18%;
+  left: 22%;
+  right: 22%;
+  top: 22%;
+  bottom: 22%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -493,6 +512,91 @@
   transition: background .15s, color .15s;
 }
 .modalSkip:hover { background: rgba(71, 85, 105, .5); color: #e2e8f0; }
+
+/* ── Share modal specifics ── */
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modalClose {
+  background: none;
+  border: none;
+  color: #475569;
+  cursor: pointer;
+  padding: .25rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color .15s;
+}
+.modalClose:hover { color: #e2e8f0; }
+
+.shareCode {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: rgba(99, 102, 241, .06);
+  border: 1px solid rgba(99, 102, 241, .15);
+  border-radius: 12px;
+  padding: .8rem 1.4rem;
+}
+
+.shareCodeLabel {
+  font-size: .75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.shareCodeValue {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #e2e8f0;
+  letter-spacing: .2em;
+  font-family: 'DM Mono', monospace;
+}
+
+.qrWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.2rem;
+  background: rgba(10, 14, 26, .5);
+  border-radius: 14px;
+  border: 1px solid rgba(99, 102, 241, .12);
+}
+
+.shareHint {
+  font-size: .78rem;
+  color: #475569;
+  text-align: center;
+  margin: 0;
+}
+
+.copyLinkBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, .15), rgba(139, 92, 246, .1));
+  border: 1px solid rgba(99, 102, 241, .3);
+  color: #818cf8;
+  border-radius: 10px;
+  padding: .7rem;
+  font-size: .875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s, box-shadow .2s, color .2s;
+}
+.copyLinkBtn:hover {
+  background: linear-gradient(135deg, rgba(99, 102, 241, .25), rgba(139, 92, 246, .18));
+  box-shadow: 0 0 20px rgba(99, 102, 241, .2);
+  color: #c7d2fe;
+}
 
 /* ── Responsive ── */
 @media (max-width: 640px) {

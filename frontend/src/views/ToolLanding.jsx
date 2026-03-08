@@ -1,4 +1,10 @@
 import { lazy, Suspense } from 'react'
+import {
+  Link, Hash, Eye, MessageSquare,
+  Users, Zap, AlertTriangle, BarChart2,
+  CheckCircle2, TrendingUp, FolderOpen, HardDrive,
+  PieChart, FileSpreadsheet,
+} from 'lucide-react'
 import styles from './ToolLanding.module.css'
 
 const PREVIEWS = {
@@ -10,7 +16,7 @@ const PREVIEWS = {
 
 const CONTENT = {
   'planning-poker': {
-    icon: '🃏',
+    illustration: '/illustrations/poker.svg',
     name: 'Planning Poker',
     tagline: 'Estimez en équipe, révélez ensemble.',
     description:
@@ -24,15 +30,15 @@ const CONTENT = {
       { n: '4', label: 'Convergez', desc: `Relancez un vote jusqu'au consensus sur l'estimation.` },
     ],
     features: [
-      { icon: '🔗', label: 'Room partagée via un code 4 lettres' },
-      { icon: '🃏', label: 'Séquence Fibonacci : 1 2 3 5 8 13 21 34 ? ∞' },
-      { icon: '👁️', label: 'Révélation simultanée anti-biais' },
-      { icon: '💬', label: 'Justification obligatoire sur les votes extrêmes' },
+      { Icon: Link,          label: 'Room partagée via un code 4 lettres' },
+      { Icon: Hash,          label: 'Séquence Fibonacci : 1 2 3 5 8 13 21 34 ? ∞' },
+      { Icon: Eye,           label: 'Révélation simultanée anti-biais' },
+      { Icon: MessageSquare, label: 'Justification obligatoire sur les votes extrêmes' },
     ],
   },
 
   velocity: {
-    icon: '📈',
+    illustration: '/illustrations/velocity.svg',
     name: 'Planificateur de sprint',
     tagline: 'Planifiez la capacité, sprint après sprint.',
     description:
@@ -46,15 +52,15 @@ const CONTENT = {
       { n: '4', label: 'Exportez', desc: 'Envoyez les données en Visualisation ou Rétro.' },
     ],
     features: [
-      { icon: '👥', label: 'Gestion Dev/QA avec capacités individuelles' },
-      { icon: '⚡', label: `Calcul automatique de vélocité d'équipe` },
-      { icon: '🔴', label: 'Alertes membres surchargés' },
-      { icon: '📊', label: 'Export direct vers Visualisation et Rétro' },
+      { Icon: Users,         label: 'Gestion Dev/QA avec capacités individuelles' },
+      { Icon: Zap,           label: `Calcul automatique de vélocité d'équipe` },
+      { Icon: AlertTriangle, label: 'Alertes membres surchargés' },
+      { Icon: BarChart2,     label: 'Export direct vers Visualisation et Rétro' },
     ],
   },
 
   retro: {
-    icon: '🔁',
+    illustration: '/illustrations/retro.svg',
     name: 'Rétro sprint',
     tagline: 'Analysez vos sprints, progressez ensemble.',
     description:
@@ -68,15 +74,15 @@ const CONTENT = {
       { n: '4', label: 'Archivez', desc: 'Les données sont sauvegardées localement pour les prochains sprints.' },
     ],
     features: [
-      { icon: '✅', label: 'Statuts : Atteint / Partiel / Non atteint' },
-      { icon: '📈', label: 'Vélocité réelle vs planifiée' },
-      { icon: '📂', label: 'Import Excel (Résumé + Tâches)' },
-      { icon: '💾', label: 'Sauvegarde locale automatique' },
+      { Icon: CheckCircle2,  label: 'Statuts : Atteint / Partiel / Non atteint' },
+      { Icon: TrendingUp,    label: 'Vélocité réelle vs planifiée' },
+      { Icon: FolderOpen,    label: 'Import Excel (Résumé + Tâches)' },
+      { Icon: HardDrive,     label: 'Sauvegarde locale automatique' },
     ],
   },
 
   visualisation: {
-    icon: '📊',
+    illustration: '/illustrations/visualisation.svg',
     name: 'Visualisation',
     tagline: 'Visualisez la charge, identifiez les goulots.',
     description:
@@ -90,10 +96,10 @@ const CONTENT = {
       { n: '4', label: 'Alertes surcharge', desc: `Les membres dépassant leur capacité sont mis en évidence.` },
     ],
     features: [
-      { icon: '📊', label: 'Graphiques de charge par rôle (Dev/QA)' },
-      { icon: '🥧', label: 'Répartition des tâches par type' },
-      { icon: '🔴', label: 'Membres en surcharge mis en évidence' },
-      { icon: '📂', label: 'Import fichier Excel direct' },
+      { Icon: BarChart2,      label: 'Graphiques de charge par rôle (Dev/QA)' },
+      { Icon: PieChart,       label: 'Répartition des tâches par type' },
+      { Icon: AlertTriangle,  label: 'Membres en surcharge mis en évidence' },
+      { Icon: FileSpreadsheet, label: 'Import fichier Excel direct' },
     ],
   },
 }
@@ -109,8 +115,8 @@ export default function ToolLanding({ tool, onStart }) {
       {/* ── Hero ── */}
       <div className={styles.hero}>
         <div className={styles.heroText}>
-          <div className={styles.iconOrb}>
-            <span className={styles.heroIcon}>{c.icon}</span>
+          <div className={styles.illustrationCard}>
+            <img src={c.illustration} alt={c.name} className={styles.heroIllustration} />
           </div>
           <h1 className={styles.title}>{c.name}</h1>
           <p className={styles.tagline}>{c.tagline}</p>
@@ -150,7 +156,9 @@ export default function ToolLanding({ tool, onStart }) {
         <div className={styles.features}>
           {c.features.map(f => (
             <div key={f.label} className={styles.feature}>
-              <span className={styles.featureIcon}>{f.icon}</span>
+              <div className={styles.featureIconWrap}>
+                <f.Icon size={15} strokeWidth={1.75} color="#818cf8" />
+              </div>
               <span className={styles.featureLabel}>{f.label}</span>
             </div>
           ))}

@@ -9,6 +9,17 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.contentCollapsed {
+  margin-left: 0;
+}
+
+@media (max-width: 768px) {
+  .content {
+    margin-left: 0;
+  }
 }
 
 /* Full-height page wrapper, centred */

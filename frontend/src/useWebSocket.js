@@ -56,8 +56,10 @@ export function useWebSocket({ roomCode, playerId, token, onMessage, enabled }) 
 
         ws.onerror = () => ws.close()
       })
-      .catch(() => {
-        // Échec de l'obtention du ticket : réessayer après 3s
+      .catch((err) => {
+        // Erreurs permanentes (room supprimée, auth invalide) : ne pas réessayer
+        if (err.status === 404 || err.status === 401 || err.status === 403) return
+        // Erreur réseau temporaire : réessayer après 3s
         reconnectRef.current = setTimeout(connect, 3_000)
       })
   }, [enabled, roomCode, playerId, token, onMessage])

@@ -1,5 +1,6 @@
 import { useEffect, useRef, Suspense, lazy } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Layers, TrendingUp, RefreshCw, BarChart2 } from 'lucide-react'
 import Background from '../components/Background.jsx'
 import styles from './Landing.module.css'
 
@@ -11,28 +12,28 @@ const PreviewVisualisation = lazy(() => import('../components/previews/PreviewVi
 const TOOLS = [
   {
     id: 'planning-poker',
-    icon: '🃏',
+    Icon: Layers,
     name: 'Planning Poker',
     desc: `Estimez vos user stories en équipe, révélation simultanée pour éviter les biais.`,
     Preview: PreviewPoker,
   },
   {
     id: 'velocity',
-    icon: '📈',
+    Icon: TrendingUp,
     name: 'Planificateur de sprint',
     desc: `Calculez la capacité de chaque membre et détectez les surcharges avant qu'elles arrivent.`,
     Preview: PreviewVelocity,
   },
   {
     id: 'retro',
-    icon: '🔁',
+    Icon: RefreshCw,
     name: 'Rétro sprint',
     desc: `Évaluez vos objectifs et comparez vélocité réelle vs planifiée en un coup d'œil.`,
     Preview: PreviewRetro,
   },
   {
     id: 'visualisation',
-    icon: '📊',
+    Icon: BarChart2,
     name: 'Visualisation',
     desc: `Transformez un export Excel en tableaux de bord de charge et de répartition.`,
     Preview: PreviewVisualisation,
@@ -40,10 +41,10 @@ const TOOLS = [
 ]
 
 const FLOW = [
-  { icon: '🃏', step: '01', name: 'Estimez',    desc: 'Votez sur chaque story en équipe via le Planning Poker.' },
-  { icon: '📈', step: '02', name: 'Planifiez',  desc: `Répartissez la charge et planifiez la capacité du sprint.` },
-  { icon: '🔁', step: '03', name: `Rétrospectez`, desc: `Analysez le sprint écoulé, objectif par objectif.` },
-  { icon: '📊', step: '04', name: 'Visualisez', desc: `Pilotez avec des graphiques clairs sur la charge réelle.` },
+  { Icon: Layers,    step: '01', name: 'Estimez',       desc: 'Votez sur chaque story en équipe via le Planning Poker.' },
+  { Icon: TrendingUp, step: '02', name: 'Planifiez',    desc: `Répartissez la charge et planifiez la capacité du sprint.` },
+  { Icon: RefreshCw, step: '03', name: `Rétrospectez`,  desc: `Analysez le sprint écoulé, objectif par objectif.` },
+  { Icon: BarChart2, step: '04', name: 'Visualisez',    desc: `Pilotez avec des graphiques clairs sur la charge réelle.` },
 ]
 
 // Hook d'animation au scroll
@@ -137,7 +138,7 @@ export default function Landing() {
         </AnimatedSection>
 
         <div className={styles.toolsGrid}>
-          {TOOLS.map(({ id, icon, name, desc, Preview }, i) => {
+          {TOOLS.map(({ id, Icon, name, desc, Preview }, i) => {
             const Cmp = Preview
             return (
             <AnimatedSection key={id} className={styles.toolCard}>
@@ -149,7 +150,9 @@ export default function Landing() {
               <div className={styles.toolCardBody}>
                 <div className={styles.toolCardTop}>
                   <span className={styles.toolNum}>0{i + 1}</span>
-                  <span className={styles.toolIcon}>{icon}</span>
+                  <span className={styles.toolIcon}>
+                    <Icon size={18} strokeWidth={1.5} color="#818cf8" />
+                  </span>
                 </div>
                 <h3 className={styles.toolCardName}>{name}</h3>
                 <p className={styles.toolCardDesc}>{desc}</p>
@@ -177,7 +180,9 @@ export default function Landing() {
           {FLOW.map((f, i) => (
             <AnimatedSection key={f.step} className={styles.flowStep}>
               <div className={styles.flowStepInner}>
-                <div className={styles.flowIcon}>{f.icon}</div>
+                <div className={styles.flowIcon}>
+                  <f.Icon size={28} strokeWidth={1.5} color="#818cf8" />
+                </div>
                 <div className={styles.flowNum}>{f.step}</div>
                 <h3 className={styles.flowName}>{f.name}</h3>
                 <p className={styles.flowDesc}>{f.desc}</p>

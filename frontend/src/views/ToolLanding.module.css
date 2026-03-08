@@ -29,21 +29,24 @@
   gap: 1.2rem;
 }
 
-.iconOrb {
-  width: 64px;
-  height: 64px;
+.illustrationCard {
+  width: 180px;
+  height: 130px;
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(139, 92, 246, 0.15));
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  box-shadow: 0 0 32px rgba(99, 102, 241, 0.2);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.10), rgba(139, 92, 246, 0.07));
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  box-shadow: 0 0 40px rgba(99, 102, 241, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 14px;
+  overflow: hidden;
 }
 
-.heroIcon {
-  font-size: 2rem;
-  line-height: 1;
+.heroIllustration {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .title {
@@ -223,9 +226,14 @@
   padding: 0.85rem 1.1rem;
 }
 
-.featureIcon {
-  font-size: 1.2rem;
+.featureIconWrap {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  color: #818cf8;
 }
 
 .featureLabel {

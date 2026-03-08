@@ -37,7 +37,11 @@ export async function getWsTicket(roomCode, playerId, token) {
     },
     body: JSON.stringify({ player_id: playerId }),
   })
-  if (!res.ok) throw new Error('Impossible d\'obtenir un ticket WebSocket')
+  if (!res.ok) {
+    const err = new Error('Impossible d\'obtenir un ticket WebSocket')
+    err.status = res.status
+    throw err
+  }
   const data = await res.json()
   return data.ticket
 }

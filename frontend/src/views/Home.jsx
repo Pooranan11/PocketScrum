@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { createRoom, joinRoom } from '../api.js'
 import styles from './Home.module.css'
 
-export default function Home({ onJoin, onBack }) {
-  const [tab, setTab] = useState('create') // 'create' | 'join'
+export default function Home({ onJoin, onBack, initialCode = '' }) {
+  const [tab, setTab] = useState(initialCode ? 'join' : 'create')
   const [name, setName] = useState('')
-  const [code, setCode] = useState('')
+  const [code, setCode] = useState(initialCode)
   const [role, setRole] = useState('dev')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
