@@ -1,0 +1,453 @@
+/* ── Base ── */
+.page {
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ════════════════════════════════════════
+   HERO
+════════════════════════════════════════ */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6rem 4rem 4rem;
+}
+
+.heroInner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5rem;
+  align-items: center;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.heroText {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #818cf8;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 999px;
+  padding: 0.35rem 1rem;
+  width: fit-content;
+}
+
+.heroTitle {
+  font-size: clamp(3rem, 5vw, 5rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.heroGradient {
+  background: linear-gradient(135deg, #818cf8 0%, #a78bfa 50%, #c084fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.heroSub {
+  font-size: 1.05rem;
+  color: #64748b;
+  line-height: 1.7;
+  margin: 0;
+  max-width: 480px;
+}
+
+.heroCtas {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+}
+
+/* ── Hero visual: 2×2 mini previews ── */
+.heroVisual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+
+.miniPreview {
+  height: 180px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(10, 14, 26, 0.6);
+  border: 1px solid rgba(99, 102, 241, 0.14);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.miniPreview:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(99, 102, 241, 0.2);
+}
+
+.miniLoader {
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 14, 26, 0.4);
+}
+
+/* Scroll hint */
+.scrollHint {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.scrollDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #334155;
+  animation: scrollBounce 1.8s ease-in-out infinite;
+}
+
+@keyframes scrollBounce {
+  0%, 100% { transform: translateY(0); opacity: 0.4; }
+  50%       { transform: translateY(10px); opacity: 1; }
+}
+
+/* ════════════════════════════════════════
+   SHARED SECTION
+════════════════════════════════════════ */
+.section {
+  position: relative;
+  padding: 7rem 4rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+}
+
+.sectionEyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #6366f1;
+  margin: 0;
+}
+
+.sectionTitle {
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #f1f5f9;
+  margin: 0.4rem 0 0;
+  line-height: 1.1;
+}
+
+.sectionSub {
+  font-size: 0.98rem;
+  color: #64748b;
+  line-height: 1.7;
+  margin: 0.75rem 0 0;
+  max-width: 560px;
+}
+
+/* ════════════════════════════════════════
+   TOOLS GRID
+════════════════════════════════════════ */
+.toolsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.toolCard {
+  background: rgba(10, 14, 26, 0.55);
+  border: 1px solid rgba(99, 102, 241, 0.14);
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+}
+
+.toolCard:hover {
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5), 0 0 60px rgba(99, 102, 241, 0.08);
+  transform: translateY(-4px);
+}
+
+.toolPreviewWrap {
+  height: 220px;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+  background: rgba(5, 8, 20, 0.5);
+}
+
+.toolCardBody {
+  padding: 1.6rem 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.toolCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.toolNum {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #334155;
+}
+
+.toolIcon {
+  font-size: 1.3rem;
+}
+
+.toolCardName {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.toolCardDesc {
+  font-size: 0.83rem;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ════════════════════════════════════════
+   SPRINT FLOW
+════════════════════════════════════════ */
+.flow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.flowStep {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.flowStepInner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1.8rem;
+  background: rgba(10, 14, 26, 0.5);
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  border-radius: 18px;
+  transition: border-color 0.25s, background 0.25s;
+}
+
+.flowStepInner:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+  background: rgba(10, 14, 26, 0.7);
+}
+
+.flowIcon {
+  font-size: 1.8rem;
+}
+
+.flowNum {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #6366f1;
+}
+
+.flowName {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0;
+}
+
+.flowDesc {
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.flowArrow {
+  color: #334155;
+  font-size: 1.2rem;
+  padding: 0 0.4rem;
+  margin-top: 2.8rem;
+  flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════
+   FINAL CTA
+════════════════════════════════════════ */
+.ctaSection {
+  padding: 6rem 4rem 8rem;
+  display: flex;
+  justify-content: center;
+}
+
+.ctaCard {
+  position: relative;
+  max-width: 700px;
+  width: 100%;
+  background: rgba(10, 14, 26, 0.7);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 28px;
+  padding: 4rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+  box-shadow: 0 8px 64px rgba(0, 0, 0, 0.5), 0 0 80px rgba(99, 102, 241, 0.08);
+  overflow: hidden;
+}
+
+.ctaGlow {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.15), transparent 70%);
+  pointer-events: none;
+}
+
+.ctaEyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #6366f1;
+  margin: 0;
+}
+
+.ctaTitle {
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #f1f5f9;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.ctaSub {
+  font-size: 0.9rem;
+  color: #475569;
+  margin: 0;
+}
+
+/* ════════════════════════════════════════
+   CTAs BUTTONS
+════════════════════════════════════════ */
+.ctaPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.9rem 2rem;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: none;
+  border-radius: 14px;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  box-shadow: 0 4px 24px rgba(99, 102, 241, 0.4), 0 0 0 1px rgba(99, 102, 241, 0.2);
+  transition: box-shadow 0.2s, transform 0.15s;
+}
+
+.ctaPrimary:hover {
+  box-shadow: 0 8px 36px rgba(99, 102, 241, 0.55), 0 0 0 1px rgba(99, 102, 241, 0.35);
+  transform: translateY(-2px);
+  opacity: 1;
+}
+
+.ctaPrimary span { font-size: 1.1rem; transition: transform 0.2s; }
+.ctaPrimary:hover span { transform: translateX(4px); }
+
+.ctaSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.ctaSecondary:hover { color: #818cf8; }
+.ctaSecondary span  { font-size: 1rem; }
+
+/* ════════════════════════════════════════
+   FOOTER
+════════════════════════════════════════ */
+.footer {
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 0.72rem;
+  color: #1e293b;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* ════════════════════════════════════════
+   SCROLL ANIMATIONS
+════════════════════════════════════════ */
+.fadeUp {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.65s ease, transform 0.65s ease;
+}
+
+.fadeUp.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ════════════════════════════════════════
+   RESPONSIVE
+════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .heroInner       { grid-template-columns: 1fr; gap: 3rem; }
+  .heroVisual      { grid-template-columns: 1fr 1fr; }
+  .hero            { padding: 5rem 2rem 3rem; }
+  .toolsGrid       { grid-template-columns: 1fr; }
+  .flow            { flex-direction: column; }
+  .flowArrow       { transform: rotate(90deg); margin: 0 auto; }
+  .section         { padding: 5rem 2rem; }
+  .ctaSection      { padding: 4rem 2rem 6rem; }
+  .ctaCard         { padding: 2.5rem 1.8rem; }
+}
