@@ -1,8 +1,28 @@
-.app {
+/* Sidebar width token — keep in sync with ToolBarrel.module.css */
+:root {
+  --sidebar-w: 320px;
+}
+
+/* Main content area, offset from the fixed sidebar */
+.content {
+  margin-left: var(--sidebar-w);
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Full-height page wrapper, centred */
+.page {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
+  min-height: 100vh;
+}
+
+/* Pages that prefer top alignment (Velocity, Retro, Visualisation) */
+.pageTop {
+  justify-content: flex-start;
 }

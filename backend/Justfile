@@ -27,8 +27,9 @@ redis:
     redis-server --daemonize yes --logfile /tmp/redis-pocketscrum.log
     @redis-cli ping
 
-# Lancer le serveur de développement (hot reload)
+# Lancer le serveur de développement (hot reload, démarre Redis si nécessaire)
 dev:
+    redis-cli ping > /dev/null 2>&1 || redis-server --daemonize yes --logfile /tmp/redis-pocketscrum.log
     {{uvicorn}} main:app --reload --host 0.0.0.0 --port 8000
 
 # Lancer tous les tests

@@ -1,0 +1,163 @@
+.wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.2rem 1.4rem;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid rgba(99,102,241,0.12);
+}
+
+.sprint {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #818cf8;
+}
+
+.pts {
+  font-size: 0.7rem;
+  color: #475569;
+}
+
+.pts b { color: #94a3b8; }
+
+/* ── Member rows ── */
+.members {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  flex: 1;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.rowOver .avatar {
+  border-color: rgba(248, 113, 113, 0.5);
+  background: rgba(248, 113, 113, 0.1);
+  color: #f87171;
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(99,102,241,0.12);
+  border: 1px solid rgba(99,102,241,0.25);
+  color: #818cf8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.topLine {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.role {
+  font-size: 0.6rem;
+  font-weight: 600;
+  background: rgba(99,102,241,0.12);
+  color: #818cf8;
+  border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+}
+
+.roleQA {
+  background: rgba(34,197,94,0.1);
+  color: #4ade80;
+  border-color: rgba(34,197,94,0.2);
+}
+
+.loadLabel {
+  margin-left: auto;
+  font-size: 0.65rem;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.warn {
+  color: #f87171;
+  font-size: 0.7rem;
+}
+
+/* ── Capacity bar ── */
+.barTrack {
+  height: 4px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.bar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #6366f1, #818cf8);
+  transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.barOver {
+  background: linear-gradient(90deg, #6366f1, #f59e0b);
+}
+
+.barOverflow {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  height: 100%;
+  border-radius: 0 999px 999px 0;
+  background: #f87171;
+  transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1) 0.4s;
+}
+
+/* ── Task chips ── */
+.tasks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.chip {
+  font-size: 0.58rem;
+  font-weight: 500;
+  color: #64748b;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 4px;
+  padding: 0.08rem 0.35rem;
+}

@@ -1,0 +1,236 @@
+/* ── Page wrapper ── */
+.page {
+  width: 100%;
+  min-height: 100vh;
+  padding: 4rem 4rem 6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ── Hero ── */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+@media (max-width: 820px) {
+  .hero { grid-template-columns: 1fr; }
+  .page { padding: 2.5rem 2rem 5rem; }
+}
+
+.heroText {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.iconOrb {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(139, 92, 246, 0.15));
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  box-shadow: 0 0 32px rgba(99, 102, 241, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.heroIcon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.title {
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  letter-spacing: -0.03em;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.tagline {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #818cf8;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.description {
+  font-size: 0.95rem;
+  color: #64748b;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.cta {
+  align-self: flex-start;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.8rem;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  box-shadow:
+    0 4px 20px rgba(99, 102, 241, 0.35),
+    0 0 0 1px rgba(99, 102, 241, 0.2);
+  transition: box-shadow 0.2s, transform 0.15s;
+}
+
+.cta:hover {
+  box-shadow:
+    0 8px 30px rgba(99, 102, 241, 0.5),
+    0 0 0 1px rgba(99, 102, 241, 0.35);
+  transform: translateY(-2px);
+  opacity: 1;
+}
+
+.ctaArrow {
+  font-size: 1.1rem;
+  transition: transform 0.2s;
+}
+
+.cta:hover .ctaArrow {
+  transform: translateX(4px);
+}
+
+/* ── Screenshot / Preview ── */
+.preview {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  box-shadow:
+    0 8px 48px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(99, 102, 241, 0.08);
+  background: rgba(10, 14, 26, 0.6);
+  aspect-ratio: 16 / 9;
+}
+
+.screenshot {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.previewLoading {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 14, 26, 0.4);
+  border-radius: 20px;
+}
+
+/* ── Sections ── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.8rem;
+}
+
+.sectionTitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.12);
+  padding-bottom: 0.75rem;
+  margin: 0;
+}
+
+/* ── Steps ── */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.step {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  background: rgba(10, 14, 26, 0.4);
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  border-radius: 14px;
+  padding: 1.2rem 1.3rem;
+}
+
+.stepNum {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(139, 92, 246, 0.18));
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #818cf8;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.stepBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stepLabel {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.stepDesc {
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ── Features ── */
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.9rem;
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  background: rgba(10, 14, 26, 0.35);
+  border: 1px solid rgba(99, 102, 241, 0.1);
+  border-radius: 12px;
+  padding: 0.85rem 1.1rem;
+}
+
+.featureIcon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.featureLabel {
+  font-size: 0.84rem;
+  color: #94a3b8;
+  font-weight: 500;
+  line-height: 1.4;
+}
