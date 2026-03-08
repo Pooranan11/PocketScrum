@@ -81,7 +81,7 @@ export default function ToolBarrel({ currentTool, onSelect, onChange }) {
 
   const moveTo = useCallback((next) => setRawIdx(next), [])
 
-  // Non-passive wheel
+  // Non-passive wheel (souris / trackpad)
   useEffect(() => {
     const el = barrelRef.current
     if (!el) return
@@ -94,6 +94,27 @@ export default function ToolBarrel({ currentTool, onSelect, onChange }) {
     }
     el.addEventListener('wheel', handler, { passive: false })
     return () => el.removeEventListener('wheel', handler)
+  }, [])
+
+  // Touch (iPad / mobile) — on mesure le swipe total sur touchend
+  useEffect(() => {
+    const el = barrelRef.current
+    if (!el) return
+    let startY = 0
+
+    const onStart = (e) => { startY = e.touches[0].clientY }
+    const onEnd   = (e) => {
+      const delta = startY - e.changedTouches[0].clientY
+      if (Math.abs(delta) < 30) return           // seuil minimum : 30px
+      setRawIdx(r => r + (delta > 0 ? 1 : -1))
+    }
+
+    el.addEventListener('touchstart', onStart, { passive: true })
+    el.addEventListener('touchend',   onEnd,   { passive: true })
+    return () => {
+      el.removeEventListener('touchstart', onStart)
+      el.removeEventListener('touchend',   onEnd)
+    }
   }, [])
 
   const cardH = itemH - GAP
